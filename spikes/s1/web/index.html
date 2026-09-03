@@ -2,7 +2,7 @@
 <style>body{font:14px system-ui;max-width:900px;margin:2em auto;padding:0 1em}button{margin:.2em}pre{background:#f4f4f4;padding:.6em;overflow:auto;max-height:280px}#log{max-height:200px}</style>
 <h1>dappdata S1: key derivation with a real wallet</h1>
 <p>Throwaway harness. Use a <b>throwaway account</b>: signatures are printed on screen. Per wallet: connect, sign typed data 20 times (reload the page between some runs, restart the wallet once), then personal_sign 20 times. Screenshot the wallet prompt on the first sign of each kind. Copy the JSON into <code>RESULTS.md</code>.</p>
-<p><button id="connect">Connect wallet</button> <span id="who"></span></p>
+<p>Wallet: <select id="wallet"></select> <button id="connect">Connect wallet</button> <span id="who"></span></p>
 <p>Typed data (eth_signTypedData_v4): <button id="typed1">sign once</button> <button id="typed20">sign 20×</button>
 &nbsp; Fallback (personal_sign): <button id="text1">sign once</button> <button id="text20">sign 20×</button></p>
 <h3>Log</h3><pre id="log"></pre>
