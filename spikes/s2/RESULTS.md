@@ -1,6 +1,6 @@
 # S2 — Latency: results
 
-Status: **in progress** (started 2026-09-03). Path 1 (bee-factory) and path 4 (public gateways) measured. Paths 2 and 3 wait for sBZZ on the Sepolia node. Main finding so far: Bee's feed lookup costs 2–4 s wherever it runs; a known index makes reads 10–300 ms.
+Status: **paths 1, 2, 4 measured** (2026-09-03). Path 3 (gateway-proxy in front of the Sepolia node) pending. Main finding: Bee's feed lookup costs 2–5 s wherever it runs; a known index makes reads 10–300 ms. Cross-node visibility is 2–2.5 s on mainnet via gateways but 7–20 s p50 and up to 55 s on the Sepolia testnet.
 
 ## What is here
 
@@ -66,7 +66,31 @@ Same cluster, a few minutes later: writes 15–69 ms, lookup reads now 2–4 s (
 
 ## Path 2 — own light node on Sepolia, HTTP API direct
 
-_pending: node has sETH, needs sBZZ for a batch_
+Writer: our light node (`:1643`, batch `98dfbb97…` depth 17, bought the same hour). Reader: a second, ultra-light node on the same machine (`:1653`, swap off), so the reader has to fetch every chunk from the network. Both had 18–19 peers. 30 iterations, 60 s visibility timeout (`results/sepolia-2026-09-03T18-46-08-231Z.json`).
+
+| measure | n | failed | p50 ms | p95 ms | max ms |
+|---|---|---|---|---|---|
+| 1KB write (known index) | 30 | 0 | 1705 | 11761 | 12828 |
+| 1KB visibility | 29 | 1 | 19812 | 48520 | 53144 |
+| 1KB read by index | 30 | 0 | 19 | 30 | 31 |
+| 1KB read warm (lookup) | 30 | 0 | 3007 | 4011 | 5012 |
+| 1KB read cold (lookup) | 30 | 0 | 3008 | 4012 | 5011 |
+| 3.5KB write (known index) | 30 | 0 | 1395 | 6989 | 10128 |
+| 3.5KB visibility | 30 | 0 | 12513 | 54493 | 55664 |
+| 3.5KB read by index | 30 | 0 | 20 | 26 | 28 |
+| 3.5KB read warm (lookup) | 30 | 0 | 3008 | 4011 | 5010 |
+| 64KB write (known index) | 30 | 0 | 645 | 2423 | 2590 |
+| 64KB visibility | 30 | 0 | 7150 | 49210 | 59370 |
+| 64KB read by index | 30 | 0 | 21 | 28 | 28 |
+| 64KB read warm (lookup) | 30 | 0 | 3026 | 4636 | 5034 |
+| 64KB read cold (lookup) | 30 | 0 | 3019 | 4633 | 5035 |
+
+Reading it:
+- **Writes** through a light node: 0.6–1.7 s p50, with a long tail to 12 s on the small inline updates (the node pushes the SOC to its neighbourhood and waits for receipts; the light node's few connections make that slow). The 64 KB writes were faster than the 1 KB ones, which says the tail is per-request overhead and peer luck, not bytes.
+- **Cross-node visibility is the weak number: 7–20 s p50, 48–54 s p95, one 60 s timeout.** The fastest sightings were 4–5 s (one lookup plus a network fetch), the slow ones came in bunches. Two caveats before reading it as Swarm's number: the Sepolia testnet is small and thinly connected, and the reader is an ultra-light node with no bandwidth to pay, which Bee peers serve last. Mainnet through two gateways (path 4) saw the same updates in 2–2.5 s.
+- **Read by index** is 20 ms here, but that is a local cache hit: the visibility poll had already pulled the chunk into the reader. The honest cold "read by index over the network" is the first visibility sighting minus the lookup, about 1–2 s on this testnet.
+- **Lookup reads** are 3–5 s again, identical to bee-factory and to the gateways. Three environments, one number: Bee's feed lookup costs 2–5 s regardless of network.
+- No write failed; one visibility poll timed out.
 
 ## Path 3 — gateway-proxy in front of the Sepolia node
 
@@ -121,10 +145,11 @@ No failures, 64 KB included. Both the 60 s visibility wall and the 64 KB read er
 
 Proposed in SPIKES.md: cold read-latest p95 ≤ 5 s; warm p95 ≤ 2 s; cross-client visibility p95 ≤ 30 s.
 
-Where the data points so far (paths 1 and 4; paths 2–3 pending):
+Where the data points so far (paths 1, 2 and 4; path 3 pending):
 - **Cold read-latest** (unknown index, one lookup): p95 4–5 s locally, 2.7–3.6 s through a gateway. Meets ≤ 5 s, barely. This is the "restore on a new device" number and it is Bee's lookup cost.
 - **Warm read-latest**: with the lookup, p95 2.5–4 s, misses ≤ 2 s. With a cached index, p95 20 ms locally and 0.4–0.5 s through a gateway, meets it with room. So the threshold is met only if the SDK keeps the index; write that into the design (Phase 1: per-slot index cache, lookup only when empty or on a miss).
-- **Cross-client visibility**: 2–5.6 s p95 where the reader does not cache stale answers. Meets ≤ 30 s. A reader behind a caching gateway can see a 60 s wall; document that gateways are not all equal and let the SDK bypass a stale answer by reading index+1 directly.
+- **Cross-client visibility**: 2–5.6 s p95 on bee-factory and on mainnet via two gateways, meets ≤ 30 s. On the Sepolia testnet with an ultra-light reader: 7–20 s p50, 48–54 s p95, misses it. The mainnet number is the one that matters for the threshold, and the testnet one is the reminder to design for it: the SDK polls with backoff, shows "last synced" honestly, and never blocks the UI on visibility. A reader behind a caching gateway can also see a 60 s wall; the SDK bypasses a stale lookup by reading index+1 directly.
+- **Writes**: not in the proposed thresholds, but a light node in the browser will look like path 2: 0.6–1.7 s p50, tail to 12 s. The SDK confirms a write locally at once and reports upload completion separately.
 - Failures: none in the settled runs on the Foundation gateways and bee-factory; the first minutes of a fresh bee-factory produced outliers of 10–225 s, and one gateway operator's caching broke visibility. Report them as such, not in the percentiles.
 
 ## Environment

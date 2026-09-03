@@ -72,4 +72,4 @@ Phase 0 started 2026-09-03. D10 closed (bee-js 13.0.0 + core-sdk 0.1.1). D3 dire
 
 **Sepolia nodes for S2/S3:** writer, Bee 2.8.2 (Swarm Desktop binary), `/home/test/bee-sepolia/`, API `127.0.0.1:1643`, wallet `0x13cB9947C508cf52a233a1E97d80Dd2485589481`, funded (sETH + 0.13 sBZZ, chequebook deployed, batch `98dfbb97…` depth 17). Reader, ultra-light, `/home/test/bee-sepolia-reader/`, API `127.0.0.1:1653`. Each has a `start.sh`. RPC: Tenderly's public Sepolia endpoint 429s on bursts from this machine once the node is on it; both configs point at `ethereum-sepolia-rpc.publicnode.com` now (watch the log for `eth_getLogs` trouble). sBZZ came from a Uniswap V3 swap by a throwaway key (`spikes/s3/`), key at `~/.dappdata-sepolia-swap.key`. Swarm Desktop's own mainnet node (`:1633`) is off limits; bee-factory's queen takes that port while it runs.
 
-**Next action:** S2 path 2 (Sepolia writer → reader node) running; then path 3 (gateway-proxy), then S3 funding modes with the remaining sBZZ.
+**Next action:** S2 path 3 (gateway-proxy in front of the Sepolia node), then S3 funding modes with the remaining sBZZ; then close D5 and record the Phase 0 gate.
