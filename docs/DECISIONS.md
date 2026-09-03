@@ -12,18 +12,25 @@ Add new entries at the end. Do not renumber.
 **Consequences.** Anything that needs a Bee change is out of scope and goes back to IDEA-190 as a note.
 
 ## D1 — Derivation message and signing method
-**Status:** open — closes in S1
+**Status:** closure drafted from S1 (Claude, 2026-09-03); Peter confirms, then closed
 **Context.** Wallets cannot raw-sign feed updates. The storage key must come from a signature over a fixed message.
 **Options.** (a) EIP-712 typed data via `eth_signTypedData_v4`, origin-bound; (b) `personal_sign` over a text message; (c) both, typed data preferred with text fallback.
-**Leaning.** (c). Typed data shows the user structured fields; some wallets still lack it.
-**Consequences.** The message is part of the key. Its `scope` field is the version; changing anything else changes every user's key.
+**Decision.** (c), with three details fixed by S1 (`spikes/s1/RESULTS.md`):
+1. **Message.** Domain `{ name: "dappdata", version: "1" }`, primary type `DappDataKey { purpose, account, origin, scope }`, `purpose = "Derive dappdata storage key"`, `scope = "v1"`. **No `chainId` in the domain** (F1): MetaMask rejects a typed-data request whose domain chain differs from the wallet's current chain, so a chain-bound domain would force a chain switch or give a different key per chain. The key depends on account, origin, and scope only.
+2. **Fallback.** `personal_sign` over the same fields, one per line, fixed order (`fallbackText` in the spike). It derives a *different* key from the typed-data path (F2). Policy: the SDK tries typed data first; if the wallet rejects the method as unsupported, it uses the fallback. On restore, the SDK reads under the typed-data key first and, if that feed is empty, under the fallback key, so a user who moves between a typed-data wallet and a text-only wallet still finds their state. On write, the SDK uses whichever method it used to read. Both wallets tested support typed data, so the fallback is expected to be rare.
+3. **Provider comes from the caller.** The SDK never reads `window.ethereum` (several extensions fight over it; EIP-6963 is the discovery path). The dapp hands in an EIP-1193 provider.
+**Evidence.** MetaMask 13.46.1 and Rabby 0.94.6: 20 signatures each on both paths, one distinct signature per path; the same account gives the same key in both wallets; both stable across page reload and wallet restart. ethers, eth-sig-util, and viem agree headless.
+**Consequences.** The message is part of the key. Changing anything but `scope` changes every user's key; `scope` moves only with a migration (Phase 4). `ARCHITECTURE.md` updated in the same commit.
 
 ## D2 — Supported wallets and smart-account policy
-**Status:** open — closes in S1
+**Status:** closure drafted from S1 (Claude, 2026-09-03); Peter confirms, then closed
 **Context.** Deterministic ECDSA (RFC 6979) holds for MetaMask and hardware wallets; ERC-1271 contract wallets and passkey wallets cannot give a deterministic secp256k1 signature.
 **Options for contract accounts.** (a) Refuse with a clear message; (b) dapp-held escrow key, released after SIWE; (c) session key registered on the account.
-**Leaning.** (a) for v1, with the fallback direction recorded here so Phase 5 can pick it up.
-**Consequences.** Some users cannot use dappdata in v1. The SDK must detect this before asking for a signature.
+**Decision.**
+- **Supported in v1:** EOA wallets that implement `eth_signTypedData_v4` or `personal_sign` and sign with RFC 6979. Verified: MetaMask, Rabby. Expected to work, unverified: Coinbase Wallet extension, Ledger through MetaMask (firmware signs on-device; determinism assumed, to confirm before Phase 3), WalletConnect mobile wallets. The matrix in `spikes/s1/RESULTS.md` records what was run.
+- **Contract accounts (ERC-1271) and passkey wallets: (a), refuse in v1.** The SDK checks `eth_getCode(account)` before it asks for a signature and returns a typed error the dapp can show. Step 5 of the S1 protocol (try a Safe and a passkey wallet) was not run; the refusal rests on the signature model, not on an experiment, and does not need one.
+- **Recorded for Phase 5.** The way back in for these users is an identity layer that holds the seed for them: swarm-id's passkey path (D8) is the closest existing design. The SDK exposes the seed source as an interface (`EntropySource`, D8) so such a layer can plug in without touching the rest.
+**Consequences.** Some users cannot use dappdata in v1, and the dapp learns that before any prompt. The SDK never guesses the wallet type from `isMetaMask`-style flags.
 
 ## D3 — Default funding mode
 **Status:** open — direction set by Peter (2026-09-03); closes in S3
@@ -57,11 +64,15 @@ Add new entries at the end. Do not renumber.
 **Consequences.** Breaking to change later. Must be settled before Phase 5.
 
 ## D8 — Relationship to swarm-id (snaha/swarm-id) and IDEA-176
-**Status:** open — closes in S1
+**Status:** closure drafted from S1 (Claude, 2026-09-03); Peter confirms, then closed
 **Context.** swarm-id is a work-in-progress browser master identity for Swarm dapps: it derives app-specific secrets, signs feed updates, and isolates apps from each other. That overlaps dappdata's derivation layer. IDEA-176 (Swarm ID core storage) is the Foundation-side identity substrate.
 **Options.** (a) Build dappdata's derivation on swarm-id; (b) stay independent and SIWE-native, but align topic and isolation conventions so state is portable later; (c) independent, no alignment.
-**Leaning.** (b), reinforced by the S1 reading (spikes/s1/RESULTS.md, D8 section). swarm-id needs a hosted trusted domain and its own account; dappdata's point is to need neither. Align on per-origin isolation, expose the seed source as an interface so an identity layer could plug in later, and borrow their client-side stamper and lease designs where D6/D12 need them. Their passkey path is the answer to D2's excluded users if that ever moves in scope.
-**Consequences.** Derivation is our code. Closes when Peter confirms.
+**Decision.** (b). Reasons in `spikes/s1/RESULTS.md`, D8 section: swarm-id needs a hosted trusted domain and its own account; dappdata's point is to need neither. Concretely:
+- Per-origin isolation stays the isolation unit, the same as theirs.
+- Derivation stays a pure function of one signature. The SDK takes the seed through an `EntropySource` interface whose default implementation is the D1 wallet signature; an identity layer such as swarm-id could supply the seed later without a change to feeds or encryption.
+- Their `UtilizationAwareStamper` and partition-lease designs are the reference if D6/D12 need multi-device stamping. Their passkey path is the pointer for D2's excluded users.
+- Revisit in Phase 5 if swarm-id ships and dapps already carry it.
+**Consequences.** Derivation is our code. No third-party origin, no popup, no operated service in the dependency list.
 
 ## D9 — Encryption scheme
 **Status:** open — closes in Phase 1

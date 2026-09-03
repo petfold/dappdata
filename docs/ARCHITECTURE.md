@@ -26,6 +26,12 @@ One wallet signature at sign-in yields a storage identity. State lives in feeds 
 
 **Two signatures at sign-in.** SIWE proves the address to the dapp; its message has a nonce, so its signature is different every time and useless as a seed. A second, fixed, EIP-712 message yields the derivation signature. The SDK asks for it once per session and keeps the result in memory only.
 
+**The message (D1, from S1).** Domain `{ name: "dappdata", version: "1" }` with **no `chainId`**: a chain-bound domain would make the key depend on the chain the wallet happens to be on. Primary type `DappDataKey` with four string-ish fields: `purpose` ("Derive dappdata storage key"), `account`, `origin`, `scope` ("v1"). Wallets show these as labelled fields, so a user can spot a wrong origin. Reference implementation: `spikes/s1/src/derive.ts`.
+
+**Fallback (D1).** If the wallet lacks `eth_signTypedData_v4`, the SDK signs the same fields as plain text with `personal_sign`. That yields a different key, so on restore the SDK reads under the typed-data key first and then under the fallback key, and writes with the method it read with. Rare in practice: both wallets tested support typed data.
+
+**Provider.** The dapp passes an EIP-1193 provider; the SDK never reads `window.ethereum`. Several wallet extensions in one browser fight over that global, and EIP-6963 is the discovery path dapps already use.
+
 **Derivation.**
 
 ```
@@ -39,7 +45,7 @@ The derivation message binds the dapp's origin, so each dapp gets its own feed o
 
 **What the dapp sees.** The derived address, so it can build feed references. Never `feedKey` or `encKey` directly; the SDK signs and decrypts internally. `encKey` is imported into WebCrypto as non-extractable. `feedKey` has to be used by a secp256k1 signer, so it stays a plain in-memory value with the shortest lifetime the session allows.
 
-**Smart accounts.** ERC-1271 wallets cannot produce a deterministic secp256k1 signature. S1 decides the SDK's behaviour (D2); until then the SDK detects a contract account and refuses with a clear error.
+**Smart accounts (D2).** ERC-1271 wallets and passkey wallets cannot produce a deterministic secp256k1 signature. The SDK checks `eth_getCode` before asking for a signature and refuses a contract account with a typed error the dapp can show. The seed comes in through an `EntropySource` interface (D8) whose default is the wallet signature, so an identity layer that holds a seed for such users can plug in later.
 
 ## Storage layout
 
