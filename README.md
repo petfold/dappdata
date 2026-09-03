@@ -4,4 +4,4 @@ Persistent, per-user dapp state on Swarm, keyed to a Sign-In with Ethereum ident
 
 Status: pre-development. Planning and decision docs live in `docs/`; start with `docs/PLAN.md`. Working with Claude Code? Read `CLAUDE.md` first.
 
-Origin: Solar Punk Ideabox IDEA-190.
+Origin: petfold (also posted to Solar Punk Ideabox as IDEA-190).
