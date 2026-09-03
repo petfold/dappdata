@@ -1,0 +1,1967 @@
+{
+  "env": {
+    "label": "sepolia-proxy",
+    "writer": "http://localhost:3100",
+    "reader": "http://127.0.0.1:1653",
+    "batch": "0000000000000000000000000000000000000000000000000000000000000000",
+    "runs": 30,
+    "writeMode": "known index",
+    "writerVersion": "unknown (gateway)",
+    "readerVersion": "2.8.2-7e703f49",
+    "date": "2026-09-03T19:46:01.694Z"
+  },
+  "rows": [
+    {
+      "measure": "1KB write (known index)",
+      "n": 30,
+      "failed": 0,
+      "p50": 712,
+      "p95": 5445,
+      "max": 5881
+    },
+    {
+      "measure": "1KB visibility",
+      "n": 28,
+      "failed": 2,
+      "p50": 13787,
+      "p95": 53633,
+      "max": 53862
+    },
+    {
+      "measure": "1KB read by index",
+      "n": 30,
+      "failed": 0,
+      "p50": 22,
+      "p95": 32,
+      "max": 32
+    },
+    {
+      "measure": "1KB read warm",
+      "n": 30,
+      "failed": 0,
+      "p50": 3007,
+      "p95": 5012,
+      "max": 30296
+    },
+    {
+      "measure": "1KB read cold",
+      "n": 30,
+      "failed": 0,
+      "p50": 3008,
+      "p95": 4011,
+      "max": 5009
+    },
+    {
+      "measure": "3.5KB write (known index)",
+      "n": 30,
+      "failed": 0,
+      "p50": 315,
+      "p95": 1696,
+      "max": 2599
+    },
+    {
+      "measure": "3.5KB visibility",
+      "n": 30,
+      "failed": 0,
+      "p50": 10199,
+      "p95": 37839,
+      "max": 42527
+    },
+    {
+      "measure": "3.5KB read by index",
+      "n": 30,
+      "failed": 0,
+      "p50": 11,
+      "p95": 25,
+      "max": 33
+    },
+    {
+      "measure": "3.5KB read warm",
+      "n": 30,
+      "failed": 0,
+      "p50": 3005,
+      "p95": 4007,
+      "max": 5008
+    },
+    {
+      "measure": "3.5KB read cold",
+      "n": 30,
+      "failed": 0,
+      "p50": 3005,
+      "p95": 4008,
+      "max": 5008
+    },
+    {
+      "measure": "64KB write (known index)",
+      "n": 30,
+      "failed": 0,
+      "p50": 650,
+      "p95": 5834,
+      "max": 6896
+    },
+    {
+      "measure": "64KB visibility",
+      "n": 29,
+      "failed": 1,
+      "p50": 7621,
+      "p95": 52892,
+      "max": 54956
+    },
+    {
+      "measure": "64KB read by index",
+      "n": 30,
+      "failed": 0,
+      "p50": 14,
+      "p95": 28,
+      "max": 1058
+    },
+    {
+      "measure": "64KB read warm",
+      "n": 30,
+      "failed": 0,
+      "p50": 3019,
+      "p95": 4685,
+      "max": 5708
+    },
+    {
+      "measure": "64KB read cold",
+      "n": 30,
+      "failed": 0,
+      "p50": 3017,
+      "p95": 5621,
+      "max": 5709
+    }
+  ],
+  "series": {
+    "1KB write (known index)": [
+      {
+        "ok": true,
+        "ms": 712
+      },
+      {
+        "ok": true,
+        "ms": 2674
+      },
+      {
+        "ok": true,
+        "ms": 323
+      },
+      {
+        "ok": true,
+        "ms": 1144
+      },
+      {
+        "ok": true,
+        "ms": 2104
+      },
+      {
+        "ok": true,
+        "ms": 5881
+      },
+      {
+        "ok": true,
+        "ms": 627
+      },
+      {
+        "ok": true,
+        "ms": 1776
+      },
+      {
+        "ok": true,
+        "ms": 296
+      },
+      {
+        "ok": true,
+        "ms": 5445
+      },
+      {
+        "ok": true,
+        "ms": 868
+      },
+      {
+        "ok": true,
+        "ms": 874
+      },
+      {
+        "ok": true,
+        "ms": 278
+      },
+      {
+        "ok": true,
+        "ms": 368
+      },
+      {
+        "ok": true,
+        "ms": 1524
+      },
+      {
+        "ok": true,
+        "ms": 1147
+      },
+      {
+        "ok": true,
+        "ms": 294
+      },
+      {
+        "ok": true,
+        "ms": 1213
+      },
+      {
+        "ok": true,
+        "ms": 293
+      },
+      {
+        "ok": true,
+        "ms": 292
+      },
+      {
+        "ok": true,
+        "ms": 1749
+      },
+      {
+        "ok": true,
+        "ms": 321
+      },
+      {
+        "ok": true,
+        "ms": 287
+      },
+      {
+        "ok": true,
+        "ms": 1730
+      },
+      {
+        "ok": true,
+        "ms": 1088
+      },
+      {
+        "ok": true,
+        "ms": 2050
+      },
+      {
+        "ok": true,
+        "ms": 295
+      },
+      {
+        "ok": true,
+        "ms": 551
+      },
+      {
+        "ok": true,
+        "ms": 605
+      },
+      {
+        "ok": true,
+        "ms": 295
+      }
+    ],
+    "1KB visibility": [
+      {
+        "ok": true,
+        "ms": 14221
+      },
+      {
+        "ok": true,
+        "ms": 41098
+      },
+      {
+        "ok": true,
+        "ms": 33126
+      },
+      {
+        "ok": true,
+        "ms": 18955
+      },
+      {
+        "ok": false,
+        "error": "timeout after 60000 ms"
+      },
+      {
+        "ok": true,
+        "ms": 8415
+      },
+      {
+        "ok": true,
+        "ms": 9975
+      },
+      {
+        "ok": true,
+        "ms": 17861
+      },
+      {
+        "ok": true,
+        "ms": 8905
+      },
+      {
+        "ok": true,
+        "ms": 23817
+      },
+      {
+        "ok": true,
+        "ms": 44863
+      },
+      {
+        "ok": true,
+        "ms": 31451
+      },
+      {
+        "ok": true,
+        "ms": 5507
+      },
+      {
+        "ok": true,
+        "ms": 7091
+      },
+      {
+        "ok": true,
+        "ms": 4451
+      },
+      {
+        "ok": true,
+        "ms": 53862
+      },
+      {
+        "ok": false,
+        "error": "timeout after 60000 ms"
+      },
+      {
+        "ok": true,
+        "ms": 9055
+      },
+      {
+        "ok": true,
+        "ms": 33245
+      },
+      {
+        "ok": true,
+        "ms": 5578
+      },
+      {
+        "ok": true,
+        "ms": 16018
+      },
+      {
+        "ok": true,
+        "ms": 17487
+      },
+      {
+        "ok": true,
+        "ms": 13787
+      },
+      {
+        "ok": true,
+        "ms": 6161
+      },
+      {
+        "ok": true,
+        "ms": 53633
+      },
+      {
+        "ok": true,
+        "ms": 9396
+      },
+      {
+        "ok": true,
+        "ms": 7723
+      },
+      {
+        "ok": true,
+        "ms": 49326
+      },
+      {
+        "ok": true,
+        "ms": 4861
+      },
+      {
+        "ok": true,
+        "ms": 12779
+      }
+    ],
+    "1KB read by index": [
+      {
+        "ok": true,
+        "ms": 32
+      },
+      {
+        "ok": true,
+        "ms": 32
+      },
+      {
+        "ok": true,
+        "ms": 24
+      },
+      {
+        "ok": true,
+        "ms": 14
+      },
+      {
+        "ok": true,
+        "ms": 31
+      },
+      {
+        "ok": true,
+        "ms": 22
+      },
+      {
+        "ok": true,
+        "ms": 15
+      },
+      {
+        "ok": true,
+        "ms": 24
+      },
+      {
+        "ok": true,
+        "ms": 15
+      },
+      {
+        "ok": true,
+        "ms": 17
+      },
+      {
+        "ok": true,
+        "ms": 21
+      },
+      {
+        "ok": true,
+        "ms": 24
+      },
+      {
+        "ok": true,
+        "ms": 24
+      },
+      {
+        "ok": true,
+        "ms": 20
+      },
+      {
+        "ok": true,
+        "ms": 24
+      },
+      {
+        "ok": true,
+        "ms": 15
+      },
+      {
+        "ok": true,
+        "ms": 18
+      },
+      {
+        "ok": true,
+        "ms": 23
+      },
+      {
+        "ok": true,
+        "ms": 20
+      },
+      {
+        "ok": true,
+        "ms": 21
+      },
+      {
+        "ok": true,
+        "ms": 22
+      },
+      {
+        "ok": true,
+        "ms": 23
+      },
+      {
+        "ok": true,
+        "ms": 15
+      },
+      {
+        "ok": true,
+        "ms": 16
+      },
+      {
+        "ok": true,
+        "ms": 22
+      },
+      {
+        "ok": true,
+        "ms": 15
+      },
+      {
+        "ok": true,
+        "ms": 25
+      },
+      {
+        "ok": true,
+        "ms": 24
+      },
+      {
+        "ok": true,
+        "ms": 22
+      },
+      {
+        "ok": true,
+        "ms": 24
+      }
+    ],
+    "1KB read warm": [
+      {
+        "ok": true,
+        "ms": 1015
+      },
+      {
+        "ok": true,
+        "ms": 2013
+      },
+      {
+        "ok": true,
+        "ms": 1010
+      },
+      {
+        "ok": true,
+        "ms": 2014
+      },
+      {
+        "ok": true,
+        "ms": 30296
+      },
+      {
+        "ok": true,
+        "ms": 2009
+      },
+      {
+        "ok": true,
+        "ms": 1008
+      },
+      {
+        "ok": true,
+        "ms": 2008
+      },
+      {
+        "ok": true,
+        "ms": 3010
+      },
+      {
+        "ok": true,
+        "ms": 2009
+      },
+      {
+        "ok": true,
+        "ms": 3009
+      },
+      {
+        "ok": true,
+        "ms": 4010
+      },
+      {
+        "ok": true,
+        "ms": 3010
+      },
+      {
+        "ok": true,
+        "ms": 2010
+      },
+      {
+        "ok": true,
+        "ms": 1008
+      },
+      {
+        "ok": true,
+        "ms": 2008
+      },
+      {
+        "ok": true,
+        "ms": 3622
+      },
+      {
+        "ok": true,
+        "ms": 2009
+      },
+      {
+        "ok": true,
+        "ms": 3010
+      },
+      {
+        "ok": true,
+        "ms": 4008
+      },
+      {
+        "ok": true,
+        "ms": 3009
+      },
+      {
+        "ok": true,
+        "ms": 2009
+      },
+      {
+        "ok": true,
+        "ms": 3008
+      },
+      {
+        "ok": true,
+        "ms": 4009
+      },
+      {
+        "ok": true,
+        "ms": 3010
+      },
+      {
+        "ok": true,
+        "ms": 4010
+      },
+      {
+        "ok": true,
+        "ms": 5012
+      },
+      {
+        "ok": true,
+        "ms": 4009
+      },
+      {
+        "ok": true,
+        "ms": 3007
+      },
+      {
+        "ok": true,
+        "ms": 2008
+      }
+    ],
+    "1KB read cold": [
+      {
+        "ok": true,
+        "ms": 1016
+      },
+      {
+        "ok": true,
+        "ms": 2013
+      },
+      {
+        "ok": true,
+        "ms": 1006
+      },
+      {
+        "ok": true,
+        "ms": 2009
+      },
+      {
+        "ok": true,
+        "ms": 3008
+      },
+      {
+        "ok": true,
+        "ms": 2009
+      },
+      {
+        "ok": true,
+        "ms": 1009
+      },
+      {
+        "ok": true,
+        "ms": 2010
+      },
+      {
+        "ok": true,
+        "ms": 3010
+      },
+      {
+        "ok": true,
+        "ms": 2009
+      },
+      {
+        "ok": true,
+        "ms": 3009
+      },
+      {
+        "ok": true,
+        "ms": 4011
+      },
+      {
+        "ok": true,
+        "ms": 3011
+      },
+      {
+        "ok": true,
+        "ms": 2009
+      },
+      {
+        "ok": true,
+        "ms": 1014
+      },
+      {
+        "ok": true,
+        "ms": 2009
+      },
+      {
+        "ok": true,
+        "ms": 3009
+      },
+      {
+        "ok": true,
+        "ms": 2008
+      },
+      {
+        "ok": true,
+        "ms": 3009
+      },
+      {
+        "ok": true,
+        "ms": 4011
+      },
+      {
+        "ok": true,
+        "ms": 3008
+      },
+      {
+        "ok": true,
+        "ms": 2008
+      },
+      {
+        "ok": true,
+        "ms": 3008
+      },
+      {
+        "ok": true,
+        "ms": 4008
+      },
+      {
+        "ok": true,
+        "ms": 3010
+      },
+      {
+        "ok": true,
+        "ms": 4011
+      },
+      {
+        "ok": true,
+        "ms": 5009
+      },
+      {
+        "ok": true,
+        "ms": 4010
+      },
+      {
+        "ok": true,
+        "ms": 3009
+      },
+      {
+        "ok": true,
+        "ms": 2008
+      }
+    ],
+    "3.5KB write (known index)": [
+      {
+        "ok": true,
+        "ms": 291
+      },
+      {
+        "ok": true,
+        "ms": 307
+      },
+      {
+        "ok": true,
+        "ms": 299
+      },
+      {
+        "ok": true,
+        "ms": 315
+      },
+      {
+        "ok": true,
+        "ms": 323
+      },
+      {
+        "ok": true,
+        "ms": 595
+      },
+      {
+        "ok": true,
+        "ms": 1696
+      },
+      {
+        "ok": true,
+        "ms": 280
+      },
+      {
+        "ok": true,
+        "ms": 2599
+      },
+      {
+        "ok": true,
+        "ms": 286
+      },
+      {
+        "ok": true,
+        "ms": 839
+      },
+      {
+        "ok": true,
+        "ms": 279
+      },
+      {
+        "ok": true,
+        "ms": 1140
+      },
+      {
+        "ok": true,
+        "ms": 835
+      },
+      {
+        "ok": true,
+        "ms": 296
+      },
+      {
+        "ok": true,
+        "ms": 1084
+      },
+      {
+        "ok": true,
+        "ms": 565
+      },
+      {
+        "ok": true,
+        "ms": 262
+      },
+      {
+        "ok": true,
+        "ms": 279
+      },
+      {
+        "ok": true,
+        "ms": 1659
+      },
+      {
+        "ok": true,
+        "ms": 283
+      },
+      {
+        "ok": true,
+        "ms": 1368
+      },
+      {
+        "ok": true,
+        "ms": 1391
+      },
+      {
+        "ok": true,
+        "ms": 280
+      },
+      {
+        "ok": true,
+        "ms": 552
+      },
+      {
+        "ok": true,
+        "ms": 827
+      },
+      {
+        "ok": true,
+        "ms": 285
+      },
+      {
+        "ok": true,
+        "ms": 263
+      },
+      {
+        "ok": true,
+        "ms": 1388
+      },
+      {
+        "ok": true,
+        "ms": 283
+      }
+    ],
+    "3.5KB visibility": [
+      {
+        "ok": true,
+        "ms": 3496
+      },
+      {
+        "ok": true,
+        "ms": 6002
+      },
+      {
+        "ok": true,
+        "ms": 11012
+      },
+      {
+        "ok": true,
+        "ms": 35036
+      },
+      {
+        "ok": true,
+        "ms": 10924
+      },
+      {
+        "ok": true,
+        "ms": 6741
+      },
+      {
+        "ok": true,
+        "ms": 25433
+      },
+      {
+        "ok": true,
+        "ms": 9259
+      },
+      {
+        "ok": true,
+        "ms": 5749
+      },
+      {
+        "ok": true,
+        "ms": 4470
+      },
+      {
+        "ok": true,
+        "ms": 37839
+      },
+      {
+        "ok": true,
+        "ms": 9819
+      },
+      {
+        "ok": true,
+        "ms": 7512
+      },
+      {
+        "ok": true,
+        "ms": 17778
+      },
+      {
+        "ok": true,
+        "ms": 2838
+      },
+      {
+        "ok": true,
+        "ms": 30328
+      },
+      {
+        "ok": true,
+        "ms": 12882
+      },
+      {
+        "ok": true,
+        "ms": 10199
+      },
+      {
+        "ok": true,
+        "ms": 16865
+      },
+      {
+        "ok": true,
+        "ms": 8593
+      },
+      {
+        "ok": true,
+        "ms": 5147
+      },
+      {
+        "ok": true,
+        "ms": 7934
+      },
+      {
+        "ok": true,
+        "ms": 23946
+      },
+      {
+        "ok": true,
+        "ms": 7121
+      },
+      {
+        "ok": true,
+        "ms": 12204
+      },
+      {
+        "ok": true,
+        "ms": 42527
+      },
+      {
+        "ok": true,
+        "ms": 29898
+      },
+      {
+        "ok": true,
+        "ms": 33031
+      },
+      {
+        "ok": true,
+        "ms": 15471
+      },
+      {
+        "ok": true,
+        "ms": 9264
+      }
+    ],
+    "3.5KB read by index": [
+      {
+        "ok": true,
+        "ms": 25
+      },
+      {
+        "ok": true,
+        "ms": 21
+      },
+      {
+        "ok": true,
+        "ms": 33
+      },
+      {
+        "ok": true,
+        "ms": 17
+      },
+      {
+        "ok": true,
+        "ms": 10
+      },
+      {
+        "ok": true,
+        "ms": 11
+      },
+      {
+        "ok": true,
+        "ms": 12
+      },
+      {
+        "ok": true,
+        "ms": 16
+      },
+      {
+        "ok": true,
+        "ms": 11
+      },
+      {
+        "ok": true,
+        "ms": 10
+      },
+      {
+        "ok": true,
+        "ms": 12
+      },
+      {
+        "ok": true,
+        "ms": 10
+      },
+      {
+        "ok": true,
+        "ms": 11
+      },
+      {
+        "ok": true,
+        "ms": 13
+      },
+      {
+        "ok": true,
+        "ms": 15
+      },
+      {
+        "ok": true,
+        "ms": 13
+      },
+      {
+        "ok": true,
+        "ms": 11
+      },
+      {
+        "ok": true,
+        "ms": 11
+      },
+      {
+        "ok": true,
+        "ms": 10
+      },
+      {
+        "ok": true,
+        "ms": 13
+      },
+      {
+        "ok": true,
+        "ms": 10
+      },
+      {
+        "ok": true,
+        "ms": 9
+      },
+      {
+        "ok": true,
+        "ms": 10
+      },
+      {
+        "ok": true,
+        "ms": 9
+      },
+      {
+        "ok": true,
+        "ms": 12
+      },
+      {
+        "ok": true,
+        "ms": 16
+      },
+      {
+        "ok": true,
+        "ms": 10
+      },
+      {
+        "ok": true,
+        "ms": 10
+      },
+      {
+        "ok": true,
+        "ms": 10
+      },
+      {
+        "ok": true,
+        "ms": 11
+      }
+    ],
+    "3.5KB read warm": [
+      {
+        "ok": true,
+        "ms": 1014
+      },
+      {
+        "ok": true,
+        "ms": 2013
+      },
+      {
+        "ok": true,
+        "ms": 1010
+      },
+      {
+        "ok": true,
+        "ms": 2009
+      },
+      {
+        "ok": true,
+        "ms": 3005
+      },
+      {
+        "ok": true,
+        "ms": 2007
+      },
+      {
+        "ok": true,
+        "ms": 1005
+      },
+      {
+        "ok": true,
+        "ms": 2006
+      },
+      {
+        "ok": true,
+        "ms": 3007
+      },
+      {
+        "ok": true,
+        "ms": 2006
+      },
+      {
+        "ok": true,
+        "ms": 3007
+      },
+      {
+        "ok": true,
+        "ms": 4007
+      },
+      {
+        "ok": true,
+        "ms": 3007
+      },
+      {
+        "ok": true,
+        "ms": 2009
+      },
+      {
+        "ok": true,
+        "ms": 1008
+      },
+      {
+        "ok": true,
+        "ms": 2009
+      },
+      {
+        "ok": true,
+        "ms": 3007
+      },
+      {
+        "ok": true,
+        "ms": 2006
+      },
+      {
+        "ok": true,
+        "ms": 3007
+      },
+      {
+        "ok": true,
+        "ms": 4007
+      },
+      {
+        "ok": true,
+        "ms": 3006
+      },
+      {
+        "ok": true,
+        "ms": 2006
+      },
+      {
+        "ok": true,
+        "ms": 3007
+      },
+      {
+        "ok": true,
+        "ms": 4007
+      },
+      {
+        "ok": true,
+        "ms": 3006
+      },
+      {
+        "ok": true,
+        "ms": 4006
+      },
+      {
+        "ok": true,
+        "ms": 5008
+      },
+      {
+        "ok": true,
+        "ms": 4007
+      },
+      {
+        "ok": true,
+        "ms": 3006
+      },
+      {
+        "ok": true,
+        "ms": 2006
+      }
+    ],
+    "3.5KB read cold": [
+      {
+        "ok": true,
+        "ms": 1009
+      },
+      {
+        "ok": true,
+        "ms": 2008
+      },
+      {
+        "ok": true,
+        "ms": 1009
+      },
+      {
+        "ok": true,
+        "ms": 2006
+      },
+      {
+        "ok": true,
+        "ms": 3007
+      },
+      {
+        "ok": true,
+        "ms": 2005
+      },
+      {
+        "ok": true,
+        "ms": 1010
+      },
+      {
+        "ok": true,
+        "ms": 2006
+      },
+      {
+        "ok": true,
+        "ms": 3006
+      },
+      {
+        "ok": true,
+        "ms": 2005
+      },
+      {
+        "ok": true,
+        "ms": 3007
+      },
+      {
+        "ok": true,
+        "ms": 4007
+      },
+      {
+        "ok": true,
+        "ms": 3006
+      },
+      {
+        "ok": true,
+        "ms": 2008
+      },
+      {
+        "ok": true,
+        "ms": 1008
+      },
+      {
+        "ok": true,
+        "ms": 2010
+      },
+      {
+        "ok": true,
+        "ms": 3007
+      },
+      {
+        "ok": true,
+        "ms": 2006
+      },
+      {
+        "ok": true,
+        "ms": 3006
+      },
+      {
+        "ok": true,
+        "ms": 4007
+      },
+      {
+        "ok": true,
+        "ms": 3007
+      },
+      {
+        "ok": true,
+        "ms": 2007
+      },
+      {
+        "ok": true,
+        "ms": 3005
+      },
+      {
+        "ok": true,
+        "ms": 4007
+      },
+      {
+        "ok": true,
+        "ms": 3006
+      },
+      {
+        "ok": true,
+        "ms": 4008
+      },
+      {
+        "ok": true,
+        "ms": 5008
+      },
+      {
+        "ok": true,
+        "ms": 4007
+      },
+      {
+        "ok": true,
+        "ms": 3007
+      },
+      {
+        "ok": true,
+        "ms": 2006
+      }
+    ],
+    "64KB write (known index)": [
+      {
+        "ok": true,
+        "ms": 361
+      },
+      {
+        "ok": true,
+        "ms": 650
+      },
+      {
+        "ok": true,
+        "ms": 1936
+      },
+      {
+        "ok": true,
+        "ms": 641
+      },
+      {
+        "ok": true,
+        "ms": 528
+      },
+      {
+        "ok": true,
+        "ms": 420
+      },
+      {
+        "ok": true,
+        "ms": 1217
+      },
+      {
+        "ok": true,
+        "ms": 561
+      },
+      {
+        "ok": true,
+        "ms": 654
+      },
+      {
+        "ok": true,
+        "ms": 1039
+      },
+      {
+        "ok": true,
+        "ms": 476
+      },
+      {
+        "ok": true,
+        "ms": 927
+      },
+      {
+        "ok": true,
+        "ms": 1573
+      },
+      {
+        "ok": true,
+        "ms": 453
+      },
+      {
+        "ok": true,
+        "ms": 478
+      },
+      {
+        "ok": true,
+        "ms": 914
+      },
+      {
+        "ok": true,
+        "ms": 1939
+      },
+      {
+        "ok": true,
+        "ms": 5834
+      },
+      {
+        "ok": true,
+        "ms": 2600
+      },
+      {
+        "ok": true,
+        "ms": 358
+      },
+      {
+        "ok": true,
+        "ms": 1011
+      },
+      {
+        "ok": true,
+        "ms": 635
+      },
+      {
+        "ok": true,
+        "ms": 399
+      },
+      {
+        "ok": true,
+        "ms": 1889
+      },
+      {
+        "ok": true,
+        "ms": 326
+      },
+      {
+        "ok": true,
+        "ms": 674
+      },
+      {
+        "ok": true,
+        "ms": 330
+      },
+      {
+        "ok": true,
+        "ms": 932
+      },
+      {
+        "ok": true,
+        "ms": 373
+      },
+      {
+        "ok": true,
+        "ms": 6896
+      }
+    ],
+    "64KB visibility": [
+      {
+        "ok": true,
+        "ms": 7621
+      },
+      {
+        "ok": false,
+        "error": "timeout after 60000 ms"
+      },
+      {
+        "ok": true,
+        "ms": 23205
+      },
+      {
+        "ok": true,
+        "ms": 29177
+      },
+      {
+        "ok": true,
+        "ms": 4360
+      },
+      {
+        "ok": true,
+        "ms": 12059
+      },
+      {
+        "ok": true,
+        "ms": 23131
+      },
+      {
+        "ok": true,
+        "ms": 3853
+      },
+      {
+        "ok": true,
+        "ms": 54956
+      },
+      {
+        "ok": true,
+        "ms": 3617
+      },
+      {
+        "ok": true,
+        "ms": 4408
+      },
+      {
+        "ok": true,
+        "ms": 6171
+      },
+      {
+        "ok": true,
+        "ms": 10225
+      },
+      {
+        "ok": true,
+        "ms": 18388
+      },
+      {
+        "ok": true,
+        "ms": 5487
+      },
+      {
+        "ok": true,
+        "ms": 6455
+      },
+      {
+        "ok": true,
+        "ms": 4968
+      },
+      {
+        "ok": true,
+        "ms": 4693
+      },
+      {
+        "ok": true,
+        "ms": 4335
+      },
+      {
+        "ok": true,
+        "ms": 28338
+      },
+      {
+        "ok": true,
+        "ms": 5854
+      },
+      {
+        "ok": true,
+        "ms": 7287
+      },
+      {
+        "ok": true,
+        "ms": 14293
+      },
+      {
+        "ok": true,
+        "ms": 6233
+      },
+      {
+        "ok": true,
+        "ms": 4930
+      },
+      {
+        "ok": true,
+        "ms": 29189
+      },
+      {
+        "ok": true,
+        "ms": 19338
+      },
+      {
+        "ok": true,
+        "ms": 18708
+      },
+      {
+        "ok": true,
+        "ms": 15673
+      },
+      {
+        "ok": true,
+        "ms": 52892
+      }
+    ],
+    "64KB read by index": [
+      {
+        "ok": true,
+        "ms": 15
+      },
+      {
+        "ok": true,
+        "ms": 1058
+      },
+      {
+        "ok": true,
+        "ms": 14
+      },
+      {
+        "ok": true,
+        "ms": 23
+      },
+      {
+        "ok": true,
+        "ms": 22
+      },
+      {
+        "ok": true,
+        "ms": 24
+      },
+      {
+        "ok": true,
+        "ms": 28
+      },
+      {
+        "ok": true,
+        "ms": 23
+      },
+      {
+        "ok": true,
+        "ms": 15
+      },
+      {
+        "ok": true,
+        "ms": 14
+      },
+      {
+        "ok": true,
+        "ms": 12
+      },
+      {
+        "ok": true,
+        "ms": 13
+      },
+      {
+        "ok": true,
+        "ms": 13
+      },
+      {
+        "ok": true,
+        "ms": 13
+      },
+      {
+        "ok": true,
+        "ms": 15
+      },
+      {
+        "ok": true,
+        "ms": 12
+      },
+      {
+        "ok": true,
+        "ms": 11
+      },
+      {
+        "ok": true,
+        "ms": 15
+      },
+      {
+        "ok": true,
+        "ms": 18
+      },
+      {
+        "ok": true,
+        "ms": 12
+      },
+      {
+        "ok": true,
+        "ms": 13
+      },
+      {
+        "ok": true,
+        "ms": 13
+      },
+      {
+        "ok": true,
+        "ms": 13
+      },
+      {
+        "ok": true,
+        "ms": 14
+      },
+      {
+        "ok": true,
+        "ms": 12
+      },
+      {
+        "ok": true,
+        "ms": 24
+      },
+      {
+        "ok": true,
+        "ms": 16
+      },
+      {
+        "ok": true,
+        "ms": 23
+      },
+      {
+        "ok": true,
+        "ms": 23
+      },
+      {
+        "ok": true,
+        "ms": 14
+      }
+    ],
+    "64KB read warm": [
+      {
+        "ok": true,
+        "ms": 1548
+      },
+      {
+        "ok": true,
+        "ms": 2527
+      },
+      {
+        "ok": true,
+        "ms": 1509
+      },
+      {
+        "ok": true,
+        "ms": 2620
+      },
+      {
+        "ok": true,
+        "ms": 3628
+      },
+      {
+        "ok": true,
+        "ms": 2042
+      },
+      {
+        "ok": true,
+        "ms": 1628
+      },
+      {
+        "ok": true,
+        "ms": 2590
+      },
+      {
+        "ok": true,
+        "ms": 3634
+      },
+      {
+        "ok": true,
+        "ms": 2617
+      },
+      {
+        "ok": true,
+        "ms": 3619
+      },
+      {
+        "ok": true,
+        "ms": 4626
+      },
+      {
+        "ok": true,
+        "ms": 3019
+      },
+      {
+        "ok": true,
+        "ms": 2018
+      },
+      {
+        "ok": true,
+        "ms": 1017
+      },
+      {
+        "ok": true,
+        "ms": 2565
+      },
+      {
+        "ok": true,
+        "ms": 3025
+      },
+      {
+        "ok": true,
+        "ms": 2623
+      },
+      {
+        "ok": true,
+        "ms": 3019
+      },
+      {
+        "ok": true,
+        "ms": 4018
+      },
+      {
+        "ok": true,
+        "ms": 3019
+      },
+      {
+        "ok": true,
+        "ms": 2021
+      },
+      {
+        "ok": true,
+        "ms": 3513
+      },
+      {
+        "ok": true,
+        "ms": 4020
+      },
+      {
+        "ok": true,
+        "ms": 3022
+      },
+      {
+        "ok": true,
+        "ms": 4035
+      },
+      {
+        "ok": true,
+        "ms": 5708
+      },
+      {
+        "ok": true,
+        "ms": 4685
+      },
+      {
+        "ok": true,
+        "ms": 3034
+      },
+      {
+        "ok": true,
+        "ms": 2547
+      }
+    ],
+    "64KB read cold": [
+      {
+        "ok": true,
+        "ms": 1548
+      },
+      {
+        "ok": true,
+        "ms": 2545
+      },
+      {
+        "ok": true,
+        "ms": 1529
+      },
+      {
+        "ok": true,
+        "ms": 2642
+      },
+      {
+        "ok": true,
+        "ms": 3636
+      },
+      {
+        "ok": true,
+        "ms": 2033
+      },
+      {
+        "ok": true,
+        "ms": 1583
+      },
+      {
+        "ok": true,
+        "ms": 2557
+      },
+      {
+        "ok": true,
+        "ms": 3631
+      },
+      {
+        "ok": true,
+        "ms": 2619
+      },
+      {
+        "ok": true,
+        "ms": 3625
+      },
+      {
+        "ok": true,
+        "ms": 5621
+      },
+      {
+        "ok": true,
+        "ms": 3018
+      },
+      {
+        "ok": true,
+        "ms": 2018
+      },
+      {
+        "ok": true,
+        "ms": 1018
+      },
+      {
+        "ok": true,
+        "ms": 2565
+      },
+      {
+        "ok": true,
+        "ms": 3017
+      },
+      {
+        "ok": true,
+        "ms": 2619
+      },
+      {
+        "ok": true,
+        "ms": 3024
+      },
+      {
+        "ok": true,
+        "ms": 4021
+      },
+      {
+        "ok": true,
+        "ms": 3018
+      },
+      {
+        "ok": true,
+        "ms": 2017
+      },
+      {
+        "ok": true,
+        "ms": 3509
+      },
+      {
+        "ok": true,
+        "ms": 4020
+      },
+      {
+        "ok": true,
+        "ms": 3019
+      },
+      {
+        "ok": true,
+        "ms": 4030
+      },
+      {
+        "ok": true,
+        "ms": 5709
+      },
+      {
+        "ok": true,
+        "ms": 4662
+      },
+      {
+        "ok": true,
+        "ms": 3033
+      },
+      {
+        "ok": true,
+        "ms": 2516
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 # S2 — Latency: results
 
-Status: **paths 1, 2, 4 measured** (2026-09-03). Path 3 (gateway-proxy in front of the Sepolia node) pending. Main finding: Bee's feed lookup costs 2–5 s wherever it runs; a known index makes reads 10–300 ms. Cross-node visibility is 2–2.5 s on mainnet via gateways but 7–20 s p50 and up to 55 s on the Sepolia testnet.
+Status: **all four paths measured** (2026-09-03/04). Main finding: Bee's feed lookup costs 2–5 s wherever it runs; a known index makes reads 10–300 ms. Cross-node visibility is 2–2.5 s on mainnet via gateways but 8–20 s p50 and up to 55 s on the Sepolia testnet. A stamping proxy adds no measurable latency. D5 reading below, ready to close.
 
 ## What is here
 
@@ -94,7 +94,24 @@ Reading it:
 
 ## Path 3 — gateway-proxy in front of the Sepolia node
 
-_pending_
+gateway-proxy 0.16.0 (`spikes/s3`, fixed `POSTAGE_STAMP`, port 3100) in front of the same light node as path 2; the same ultra-light reader. 30 iterations, 60 s visibility timeout (`results/sepolia-proxy-2026-09-03T19-46-01-694Z.json`).
+
+| measure | n | failed | p50 ms | p95 ms | max ms |
+|---|---|---|---|---|---|
+| 1KB write (known index) | 30 | 0 | 712 | 5445 | 5881 |
+| 1KB visibility | 28 | 2 | 13787 | 53633 | 53862 |
+| 1KB read by index | 30 | 0 | 22 | 32 | 32 |
+| 1KB read warm (lookup) | 30 | 0 | 3007 | 5012 | 30296 |
+| 1KB read cold (lookup) | 30 | 0 | 3008 | 4011 | 5009 |
+| 3.5KB write (known index) | 30 | 0 | 315 | 1696 | 2599 |
+| 3.5KB visibility | 30 | 0 | 10199 | 37839 | 42527 |
+| 3.5KB read by index | 30 | 0 | 11 | 25 | 33 |
+| 64KB write (known index) | 30 | 0 | 650 | 5834 | 6896 |
+| 64KB visibility | 29 | 1 | 7621 | 52892 | 54956 |
+| 64KB read by index | 30 | 0 | 14 | 28 | 1058 |
+| 64KB read cold (lookup) | 30 | 0 | 3017 | 5621 | 5709 |
+
+Same shape as path 2: the proxy costs nothing measurable (writes 0.3–0.7 s p50 against 0.6–1.7 s direct, within run-to-run noise), visibility is the testnet's 8–14 s p50 with a tail past 50 s and three 60 s timeouts, lookup reads 3–5 s, reads by index 11–22 ms. The proxy is a transparent stamping hop; its cost is operational (someone runs it, its batch can be drained), not latency.
 
 ## Path 4 — public gateways (Gnosis mainnet, someone else's stamps)
 
@@ -143,9 +160,11 @@ No failures, 64 KB included. Both the 60 s visibility wall and the 64 KB read er
 
 ## D5 — thresholds for "interactive"
 
+**Recommendation.** Keep the three proposed thresholds and add two design rules that the numbers force: (1) the SDK caches the feed index per slot and reads by index, falling back to Bee's lookup only when it has no index or the index misses; (2) visibility is a background concern with a documented window, never something the UI blocks on. With (1), warm reads are 10–300 ms and cold reads 2–5 s everywhere measured; with (2), the 30 s visibility target is met on mainnet and missed only on the thin testnet.
+
 Proposed in SPIKES.md: cold read-latest p95 ≤ 5 s; warm p95 ≤ 2 s; cross-client visibility p95 ≤ 30 s.
 
-Where the data points so far (paths 1, 2 and 4; path 3 pending):
+Where the data points (all four paths):
 - **Cold read-latest** (unknown index, one lookup): p95 4–5 s locally, 2.7–3.6 s through a gateway. Meets ≤ 5 s, barely. This is the "restore on a new device" number and it is Bee's lookup cost.
 - **Warm read-latest**: with the lookup, p95 2.5–4 s, misses ≤ 2 s. With a cached index, p95 20 ms locally and 0.4–0.5 s through a gateway, meets it with room. So the threshold is met only if the SDK keeps the index; write that into the design (Phase 1: per-slot index cache, lookup only when empty or on a miss).
 - **Cross-client visibility**: 2–5.6 s p95 on bee-factory and on mainnet via two gateways, meets ≤ 30 s. On the Sepolia testnet with an ultra-light reader: 7–20 s p50, 48–54 s p95, misses it. The mainnet number is the one that matters for the threshold, and the testnet one is the reminder to design for it: the SDK polls with backoff, shows "last synced" honestly, and never blocks the UI on visibility. A reader behind a caching gateway can also see a 60 s wall; the SDK bypasses a stale lookup by reading index+1 directly.
