@@ -77,22 +77,27 @@ Inline when the value fits a chunk; otherwise the SDK uploads the value with Swa
 
 ## Funding *(D3, D4, D12)*
 
-> **Pending S3.** Direction as of 2026-09-03 is D3(d): the user *owns* the batch under the derived key (D12), anyone may *pay*, and the SDK stamps in the browser. If S3 confirms D12, mode A below is removed and mode B becomes the only model, with sponsorship as a parameter. Text below is the handoff design and is kept until then.
+One model: **the user owns the batch, anyone pays, the SDK stamps.** Settled by S3 (`spikes/s3/RESULTS.md`); the earlier two-adapter design with a stamping proxy is gone.
 
-One interface, two adapters.
+**Owner.** The postage batch's `_owner` is the derived storage key's address (D12). The user's wallet never signs stamps and never holds the batch; the SDK signs stamps with the derived key using core-sdk's `Stamper`, and uploads pre-stamped chunks through `POST /soc/{owner}/{id}` on any Bee HTTP endpoint that allows CORS. The endpoint holds no batch and no funds.
+
+**Payer.** Whoever calls `createBatch(owner, …)` or `topUp(batchId, …)` on the postage contract: the user, the dapp operator, a sponsor. Same code path, one function:
 
 ```ts
 interface Funding {
-  stampFor(write: PendingWrite): Promise<BatchId | ProxyRoute>;
-  health(): Promise<{ ok: boolean; ttlSeconds?: number; warning?: string }>;
+  /** Buys or extends the user's batch. Payer is whoever signs the transaction. */
+  fund(opts: { owner: EthAddress; depth: number; amountPerChunk: bigint; batchId?: BatchId }): Promise<BatchId>;
+  /** Where the user can get xBZZ and xDAI; the SDK links out, it does not swap. */
+  fundingLinks(): FundingLink[];   // Jumper first (D3)
+  health(batchId: BatchId): Promise<{ usable: boolean; ttlSeconds: number; usage: number }>;
 }
 ```
 
-**Mode A — proxy.** Writes go to a gateway-proxy URL instead of a Bee node. The proxy attaches a stamp from the dapp's batch. Stateless, but it is an operated component, and an open one drains the batch: the proxy must accept writes only with a valid SIWE session token from the dapp (see THREATS T7).
+**Batch type.** Immutable, depth chosen for the slot count the dapp expects; the SDK refuses mutable batches. The protection against overwrites is the SDK's, not the flag's (D4): stamper bucket state is persisted with the slot metadata, restored before the first write on a new device, and the SDK stops at capacity and asks for a new batch. A reused slot silently replaces the earlier chunk on the network, immutable or not.
 
-**Mode B — sponsored batch.** The user owns an **immutable** batch (mutable batches overwrite old chunks when full and break feeds — S3 records the failure). The SDK helps buy one, watches its TTL, and exposes `sponsor.topUp(batchId, amount)` so the dapp or anyone else can extend it: `topUp` on the postage contract has no owner check; only `dilute` does. Onboarding friction is the cost; a dapp can pay the first batch and hand it over.
+**Timing.** From `createBatch` confirmation to a batch usable on an arbitrary node: about 2 minutes on Sepolia. Funding starts right after sign-in; writes queue locally until `health().usable`; the dapp gets a pending state to show.
 
-Both adapters are pluggable so the dapp switches with one line.
+**Cost on the day of S3** (Sepolia price 48 035 PLUR per chunk per block): depth 17 for 7 days ≈ 0.03 BZZ; depth 20 for 30 days ≈ 1.1 BZZ. Mainnet prices differ; the SDK quotes from `/chainstate` before buying.
 
 ## Modules
 

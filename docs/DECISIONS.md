@@ -33,23 +33,28 @@ Add new entries at the end. Do not renumber.
 **Consequences.** Some users cannot use dappdata in v1, and the dapp learns that before any prompt. The SDK never guesses the wallet type from `isMetaMask`-style flags.
 
 ## D3 — Default funding mode
-**Status:** open — direction set by Peter (2026-09-03); closes in S3
+**Status:** closure drafted from S3 (Claude, 2026-09-04); Peter confirms, then closed
 **Context.** The original options conflated two questions: who *owns* the batch and who *pays* for it. The postage contract's `createBatch` takes an owner address separate from the payer, and `topUp` is permissionless, so they are independent.
 **Options.** (a) Proxy stamping as default, batch as advanced; (b) user-owned batch as default, proxy as advanced; (c) no default, dapp must choose; (d) **user owns, anyone pays**: the batch owner is always the user (see D12), and the payer is the user, a sponsor, or the dapp operator, through the same code path.
-**Direction.** (d). The user's folder must outlive any one dapp, so the user holds the lease. Sponsorship by the dapp operator is the onboarding ramp, not a separate mode. The stamping proxy (mode A) survives only if S3 shows client-side stamping (D12) does not work; otherwise it goes.
-**Onboarding notes (Peter).** Getting BZZ and xDAI is a Swarm-wide problem and several multichain funding solutions exist already; the SDK should plug into one rather than solve it. Funding is slow, so the flow starts at the *beginning* of the user's interaction with the dapp (in the background, right after sign-in) so that it has completed by the time the first write happens. Writes queue locally until the batch is usable.
-**Still to settle in S3.** Which multichain funding path to integrate first; how the SDK behaves while a batch is pending (queue, warn, or block); what the demo shows on first run.
-**Consequences.** Determines what the demo shows first and what the README teaches. Funding UX (background purchase, pending-batch queue) becomes Phase 2/3 work. ARCHITECTURE's funding section is rewritten when S3 closes this and D12.
+**Decision.** (d), confirmed end to end on Sepolia (`spikes/s3/RESULTS.md`, mode B): a payer key created a depth-17 batch owned by a different key; that key stamped a feed update client-side; a Bee node holding no batch accepted it, from Node and from a browser page on another origin; a non-owner topped the batch up; a non-owner could not dilute it. Mode A (gateway-proxy) works against Bee 2.8.2 and adds no measurable latency (S2 path 3), but it is an operated component whose batch anyone can drain, so it leaves the design: **no stamping proxy in the SDK.** A dapp that wants to sponsor users calls `createBatch(owner = user)` / `topUp`, the same code path as the user paying.
+**Onboarding.** Sponsor-pays is the demo's first-run path. For "bring your own funds", the SDK links out to one multichain route first, Jumper, because it starts from any chain and ends with both xBZZ and xDAI (survey in S3 step 7). Funding starts in the background right after sign-in; writes queue locally until the batch is usable, about 2 minutes from confirmation on Sepolia (S3 step 6), and the SDK reports the pending state to the dapp.
+**Consequences.** C4 in PLAN ("both funding modes") becomes "sponsor pays and user pays through one path". `ARCHITECTURE.md` funding section rewritten in this commit. THREATS T7 (proxy drain) is moot; a new threat replaces it: loss of stamper state (see D4).
 
 ## D4 — Postage batch type
-**Status:** open — closes in S3 (expected: immutable required)
-**Context.** Mutable batches overwrite old chunks when full, which corrupts feeds.
-**Decision expected.** The SDK refuses to use a mutable batch and says why. S3 records the actual failure mode to quote.
+**Status:** closure drafted from S3 (Claude, 2026-09-04); Peter confirms, then closed
+**Context.** Mutable batches overwrite old chunks when full, which corrupts feeds. The expectation was that immutable batches prevent that.
+**What S3 found** (`spikes/s3/RESULTS.md`, step 5). Reusing a stamp slot (bucket + index) made the earlier chunk on that slot unretrievable on the Swarm testnet **for an immutable batch as well as a mutable one**; a control with distinct slots kept both chunks. The uploading node answered 201 both times. On chain, `increaseDepth` does not check the immutable flag either. So "immutable" is a marker plus node-side behaviour on a full bucket, not an overwrite guarantee visible to the client.
+**Decision.** The SDK uses **immutable** batches and refuses mutable ones, as planned, but the protection against overwrites is an SDK rule, not the flag: (1) the SDK persists the `Stamper` bucket state alongside the feed and never stamps with a blank state on a batch that has been written to; (2) it stops at capacity and asks for a new batch instead of overwriting; (3) on a fresh device it restores the stamper state from the feed before the first write. The refusal message for mutable batches says: "a full mutable batch silently replaces your oldest data; dappdata needs an immutable batch and will stop writing when it is full."
+**Consequences.** Stamper state is part of the per-slot metadata (Phase 1 design). THREATS gains "lost stamper state overwrites own data" as a top item. Re-test the immutable behaviour on bee-factory full nodes and on mainnet during Phase 2; if Bee does reject slot reuse there, the rule stays anyway.
 
 ## D5 — Latency thresholds for "interactive"
-**Status:** open — closes in S2
+**Status:** closure drafted from S2 (Claude, 2026-09-04); Peter confirms, then closed
 **Proposed.** Cold read-latest p95 ≤ 5 s. Warm read-latest p95 ≤ 2 s. Cross-client visibility p95 ≤ 30 s.
-**Consequences.** If the numbers miss, Phase 1 gains a local cache and `watch` uses a longer interval; the docs state the visibility window plainly.
+**Decision.** Keep all three thresholds, with two rules that the measurements force (`spikes/s2/RESULTS.md`, four paths):
+1. **The SDK caches the feed index per slot and reads by index.** Bee's feed lookup costs 2–5 s in every environment measured (local cluster, testnet light nodes, mainnet gateways); a read by known index costs 10–20 ms locally and 0.2–0.3 s through a gateway. The lookup is used only when the SDK has no index (first read on a new device: the "cold" case, 2–5 s, inside the threshold) or when the cached index misses.
+2. **Visibility is a background concern with a documented window.** Cross-node visibility was 2–2.5 s p50 on mainnet via two gateways and on bee-factory, 8–20 s p50 with a tail past 50 s on the Sepolia testnet through light nodes. `watch` polls with backoff; the UI shows "last synced"; nothing blocks on it. The documented window is 30 s on mainnet.
+**Numbers behind it.** Writes 15–70 ms on bee-factory, 0.3–1.7 s through a light node or gateway, tail to 12 s. Lookup reads 3–5 s p95. A stamping proxy adds no measurable latency.
+**Consequences.** The Phase 1 slot API has a per-slot index cache and a `hint` for the last known index; `set()` resolves when the upload is accepted, and a separate `synced` signal reports visibility. C3 in PLAN is met on mainnet with these rules.
 
 ## D6 — Multi-device write strategy
 **Status:** open — closes in Phase 4
@@ -97,18 +102,18 @@ Feeds and SOCs work as documented: sequential feeds via `makeWriter(topic, signe
 **Alternatives considered.** `hatcheck` (regional idiom), `kitbag`, `belongings`, `owndata`, `savefile`, `leftoff`; `locker`, `roaming`, `appdata` (taken unscoped).
 
 ## D12 — Batch owner key and where stamping happens
-**Status:** open — closes in S3
+**Status:** closure drafted from S3 (Claude, 2026-09-04); Peter confirms, then closed
 **Context.** Postage stamps are secp256k1 signatures by the batch owner. A browser wallet cannot raw-sign, so a batch owned by the user's EOA cannot be stamped in the browser. The derived storage key (D1) can sign anything.
-**Proposal.** The batch owner is the **derived storage key's address**. The SDK signs stamps in the browser (bee-js `Stamper`, Bee envelope / pre-stamped upload path) and uploads pre-stamped chunks to any Bee HTTP endpoint. The endpoint holds no batch and no funds, so there is nothing to drain (THREATS T7 becomes moot) and the endpoint can be any public node or the dapp operator's node.
-**Verify in S3.** (1) bee-js 13 exposes client-side stamping and pre-stamped chunk upload; (2) a Bee 2.8 node with zero batches accepts pre-stamped chunks; (3) `createBatch` from a payer wallet with `_owner` = derived address, then stamping with the derived key, works end to end on Sepolia; (4) a browser page can do the upload cross-origin (CORS).
-**Consequences.** If it works, funding needs no operated stamping component and D3(d) is the whole story. If not, fall back to a Bee node that owns the batch, which reintroduces an operator role.
+**Decision.** The batch owner is the **derived storage key's address**, and the SDK signs stamps client-side. All four S3 checks passed on Sepolia with bee-js 13.0.0 + core-sdk 0.1.1 and Bee 2.8.2: (1) `Stamper.fromBlank(key, batchId, depth).stamp(address)` produces envelopes whose signatures Bee accepts (same personal-sign-over-keccak scheme); (2) a node with zero batches accepts the pre-stamped chunk and forwards it; (3) `createBatch(_owner = derived address)` from a payer key, then stamping with the derived key, works end to end; (4) a browser page on another origin can upload, given `cors-allowed-origins` on the node.
+**Two rules learned the hard way.** Upload pre-stamped SOCs through `POST /soc/{owner}/{id}` (bee-js `soc.makeWriter(key).upload(envelope, id, data)`), never `POST /chunks`, which validates the stamp against the wrong address. And stamp each chunk once: every `stamp()` call consumes a slot, and a reused slot destroys the earlier chunk (D4).
+**Consequences.** Funding needs no operated stamping component (D3). The endpoint holds no funds; THREATS T7 is moot. bee-js's `SOCWriter.upload` type should be widened upstream to accept an envelope; until then the SDK casts.
 
 ## D13 — Browser-first, with Node for spikes and tests
-**Status:** open — closes at the Phase 0 gate; direction set by Peter (2026-09-03)
+**Status:** closure drafted at the Phase 0 gate (Claude, 2026-09-04); Peter confirms, then closed
 **Context.** The plan targets the browser (C2), but the spikes are Node scripts. Retrofitting browser support later is where polyfills and second code paths appear.
-**Direction.** Phase 0 spikes stay in Node. From Phase 1 the SDK uses only primitives that exist in both browser and Node: WebCrypto, an EIP-1193 provider, bee-js, `@noble/*`. No Node-only modules in `packages/dappdata`. Tests run in Node against bee-factory.
-**The write path.** Today every write needs an HTTP Bee endpoint someone runs; weeb-3 is retrieval-only at handoff. Peter notes weeb-3 is adding or planning write support, and other in-browser nodes are in the pipeline (including Freedom Browser's attached ant node). So the SDK's Bee endpoint must be an interface, not a URL: HTTP node today, in-browser node when one exists. The minimum operator footprint today is one Bee node with API exposed and CORS set; under D12 that node holds no funds.
-**Consequences.** `bee: { url }` in the API sketch becomes a transport abstraction. S3 records the status of weeb-3 writes and any in-browser node so Phase 2 can size the work.
+**Decision.** From Phase 1 the SDK uses only primitives that exist in both browser and Node: WebCrypto, an EIP-1193 provider, bee-js 13, core-sdk, `@noble/*`. No Node-only modules in `packages/dappdata`. Tests run in Node against bee-factory. S1 showed the derivation code runs unchanged in both (F3); S3 showed the write path (client-side stamp, `POST /soc`) works from a browser page cross-origin.
+**The write path, status at the gate.** Every write today needs an HTTP Bee endpoint with `cors-allowed-origins` set; under D12 that endpoint holds no funds, so it can be the user's own node, the dapp operator's, or any public node that allows CORS. weeb-3 (github.com/lat-murmeldjur/weeb-3) now claims uploads, feed updates and postage purchase inside the browser; unverified here. So the SDK's Bee endpoint is an interface, not a URL: HTTP node in Phase 1, an in-browser node when one is verified (Phase 4 or 5).
+**Consequences.** `bee: { url }` in the API sketch becomes a transport abstraction with one HTTP implementation. Phase 2 does not need to size weeb-3 work; Phase 4 checks its status again.
 
 ## D14 — Integration surface: how much must a dapp know about dappdata?
 **Status:** direction set by Peter (2026-09-03); closes in Phase 1 (API shape) and Phase 3 (demo proves it)
