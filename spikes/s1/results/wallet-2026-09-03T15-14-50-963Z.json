@@ -1,0 +1,18 @@
+{
+  "note": "MetaMask, typed data v4, sign once after extension toggled off/on and unlocked",
+  "savedAt": "2026-09-03T15:14:50.960Z",
+  "results": [
+    {
+      "wallet": "MetaMask",
+      "account": "0xd5d8346f240af11ee5129b39e9bec6fa0f4a75e3",
+      "kind": "typed",
+      "runs": 1,
+      "distinct": 1,
+      "deterministic": true,
+      "signature": "0xe87d457186d5bfd891b9eeb70dc9822f665400329959933e1b786280a92694da63577206518b1307e9c4af7e0f06037833165403e754d6e2dbeadd6368a209801b",
+      "feedAddress": "0x5912a60959141c0fe66e32706d0b519675e3692a",
+      "ms": 4751,
+      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36"
+    }
+  ]
+}

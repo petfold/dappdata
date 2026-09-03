@@ -1,12 +1,14 @@
 # S1 — Key derivation: results
 
-Status: **in progress** (started 2026-09-03). Node-side checks and D8 reading done; real-wallet matrix, portability, and smart-account tests pending (need Peter at a browser with wallets).
+Status: **core done** (2026-09-03). Node checks, library check, D8 reading, and the real-wallet matrix for MetaMask and Rabby are done, portability confirmed. Left open: Coinbase Wallet, WalletConnect mobile, Ledger, smart accounts and passkeys (step 5). Enough to close D1, D2, D8.
 
 ## What is here
 
 - `src/derive.ts` — the EIP-712 message, the `personal_sign` fallback text, and `derive(signature)` → seed, feedKey, feedAddress, encKey. Shared by both harnesses.
 - `src/determinism.ts` — Node check with a throwaway random key (`pnpm determinism`).
-- `web/` — browser harness for real wallets (`pnpm serve`, then open http://127.0.0.1:8731). Use a throwaway account: signatures are printed on screen.
+- `web/` — browser harness for real wallets (`pnpm serve`, then open http://127.0.0.1:8731). Use a throwaway account: signatures are printed on screen. Wallets are discovered with EIP-6963 and picked from a dropdown, so several extensions can share one browser profile.
+- `src/cdp.mjs` — drives Brave/Chrome over the DevTools protocol when the browser runs with `--remote-debugging-port=9222`: evaluates JS in the harness page, and finds the wallet popup, screenshots it, and clicks Confirm. Written so a Claude session can run the 20× loops without a human clicking. `approve <n> [shotPrefix]`.
+- `results/` — one JSON per saved run (`wallet-*.json`) plus prompt screenshots.
 
 ## Node results (2026-09-03, ethers v6 signer, RFC 6979)
 
@@ -43,17 +45,40 @@ So the software layer is deterministic (RFC 6979) and interoperable. What remain
 
 | Wallet | Version | Typed data v4 | 20× deterministic | Across reload | Across wallet restart | Shows `origin` + `purpose` clearly | Fallback needed | Screenshot |
 |---|---|---|---|---|---|---|---|---|
-| MetaMask (extension) | | | | | | | | |
-| Rabby | | | | | | | | |
+| MetaMask (extension) | 13.46.1, Brave 152 (Chromium 152), Linux | yes | yes (1 distinct of 20) | yes | yes (extension toggled off/on, unlocked; also full Brave restart) | yes: Purpose, Account, Origin, Scope as labelled fields; "Request from 127.0.0.1:8731" with an HTTP warning badge | no (personal_sign also deterministic, 1 of 20; different key as F2 says) | `results/metamask-typed-prompt.png`, `results/metamask-personal-sign-prompt.png` |
+| Rabby | 0.94.6, Chromium (Ubuntu), Linux | yes | yes (1 distinct of 20) | n/a (not repeated; typed key equals MetaMask's) | n/a | yes: origin in the header, "Sign Typed Data" with the message JSON; labels the type "Unknown Signature Type" | no (personal_sign deterministic, 1 of 20, same key as MetaMask's fallback) | `results/rabby-typed-prompt.png`, `results/rabby-personal-sign-prompt.png`, `results/rabby-connect-prompt.png` |
 | Coinbase Wallet | | | | | | | | |
 | WalletConnect → (mobile wallet) | | | | | | | | |
 | Ledger via MetaMask | | | | | | | | |
+
+### MetaMask run notes (2026-09-03)
+
+- Account `0xd5d8346f240af11ee5129b39e9bec6fa0f4a75e3` (throwaway), chain 1 selected in the wallet. Typed-data feedAddress `0x5912a60959141c0fe66e32706d0b519675e3692a` in every run: same session, after page reload, after extension restart, after killing and relaunching Brave. Fallback feedAddress `0xe279a673619c54653f52d3ceebe27705298d0ec9`, also stable across 21 signatures.
+- MetaMask did not need a chain switch and did not complain about the domain without `chainId` (supports F1).
+- Prompt rendering: the typed-data prompt lists `Primary type: DappDataKey` and the four fields by name; the personal_sign prompt shows the raw text. Both name the requesting origin twice (header and message). Good enough that a user could spot a wrong origin.
+- Three wallets (MetaMask, Rabby, Brave Wallet) were installed in the same profile. Rabby had claimed `window.ethereum`, so the first harness version could only reach Rabby; the fix was EIP-6963 discovery. Any dapp that adopts dappdata will meet the same situation, so the SDK must take a provider from the caller rather than read `window.ethereum` (note for D14 / ARCHITECTURE).
+- Timing: 20 typed signatures took 332 s with a human clicking, 20 personal_sign took 580 s including a Brave restart and unlock. Not a measure of the wallet; the driver clicks in under a second each.
+- Files: `results/wallet-2026-09-03T15-08-00-122Z.json` (typed 1 + 20), `…15-09-22…` (after reload), `…15-14-50…` (after extension restart), `…15-18-40…` (typed + fallback once), `…15-35-00…` (fallback 20), `…15-35-15…` (typed once for screenshot).
 
 ## Cross-wallet portability (step 4)
 
 Import one throwaway seed phrase into two wallets; sign the same message in both; compare `feedAddress`.
 
-Result: _pending_
+Result (2026-09-03): **portable.** The throwaway account `0xd5d8…75e3` was imported into Rabby (Chromium) by private key from the MetaMask (Brave) account. Both wallets, 20 signatures each:
+
+| Path | MetaMask 13.46.1 | Rabby 0.94.6 | Match |
+|---|---|---|---|
+| typed data v4 → feedAddress | `0x5912a60959141c0fe66e32706d0b519675e3692a` | `0x5912a60959141c0fe66e32706d0b519675e3692a` | yes |
+| personal_sign → feedAddress | `0xe279a673619c54653f52d3ceebe27705298d0ec9` | `0xe279a673619c54653f52d3ceebe27705298d0ec9` | yes |
+
+Together with the headless library check (ethers, eth-sig-util, viem identical), this says the key depends on the account and the message only, not on the wallet. Files: `results/wallet-2026-09-03T15-56-25-605Z.json`, `results/wallet-2026-09-03T16-32-48-969Z.json` (the latter also holds two `User rejected` entries from an aborted run; see notes).
+
+### Rabby run notes (2026-09-03)
+
+- Rabby asks for **two clicks per signature**: "Sign", then a second "Confirm" screen. MetaMask asks for one. Rabby also flags our primary type as "Unknown Signature Type", which is expected for a custom EIP-712 type and is only cosmetic.
+- Rabby did not object to the domain without `chainId` either (F1 holds for both wallets).
+- Rabby's notification popup rendered empty once, after a request had been cancelled while another batch was still queued. "Reject All" from the Rabby dashboard and a fresh request fixed it. Lesson for the harness: run one batch at a time.
+- Driving: MetaMask prompts were confirmed by `src/cdp.mjs` over the DevTools port; Rabby typed-data prompts likewise; the final Rabby personal_sign batch was clicked by hand. Wallet unlock (password entry) stays with the human in every case.
 
 ## Smart accounts and passkeys (step 5)
 

@@ -1,0 +1,30 @@
+{
+  "note": "MetaMask: typed once for prompt screenshot, confirmed via CDP driver",
+  "savedAt": "2026-09-03T15:35:15.364Z",
+  "results": [
+    {
+      "wallet": "MetaMask",
+      "account": "0xd5d8346f240af11ee5129b39e9bec6fa0f4a75e3",
+      "kind": "text",
+      "runs": 20,
+      "distinct": 1,
+      "deterministic": true,
+      "signature": "0xba994d8330434d7ad0d08721e92ea5e04753d25cf0e9e7bc8039904d170cb64e3c81ad0e38f17cde6f2b2abf328c9539565c0c8dbd49517fb1bb49bfd8672d611b",
+      "feedAddress": "0xe279a673619c54653f52d3ceebe27705298d0ec9",
+      "ms": 580561,
+      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36"
+    },
+    {
+      "wallet": "MetaMask",
+      "account": "0xd5d8346f240af11ee5129b39e9bec6fa0f4a75e3",
+      "kind": "typed",
+      "runs": 1,
+      "distinct": 1,
+      "deterministic": true,
+      "signature": "0xe87d457186d5bfd891b9eeb70dc9822f665400329959933e1b786280a92694da63577206518b1307e9c4af7e0f06037833165403e754d6e2dbeadd6368a209801b",
+      "feedAddress": "0x5912a60959141c0fe66e32706d0b519675e3692a",
+      "ms": 5115,
+      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36"
+    }
+  ]
+}
