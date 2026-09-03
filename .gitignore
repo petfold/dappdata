@@ -9,3 +9,6 @@ coverage/
 *.key
 *.pem
 spikes/**/secrets*
+
+# spike build output
+spikes/*/web/*.js

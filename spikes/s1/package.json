@@ -1,0 +1,22 @@
+{
+  "name": "@dappdata/spike-s1",
+  "private": true,
+  "type": "module",
+  "description": "S1 key-derivation spike. Throwaway. See spikes/s1/RESULTS.md.",
+  "scripts": {
+    "determinism": "tsx src/determinism.ts",
+    "build:web": "esbuild src/web.ts --bundle --format=esm --outfile=web/derive.js --target=es2022",
+    "serve": "pnpm build:web && node src/serve.mjs"
+  },
+  "dependencies": {
+    "@ethersphere/core-sdk": "0.1.1",
+    "@noble/curves": "^1.9.0",
+    "@noble/hashes": "^1.8.0",
+    "ethers": "^6.15.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}
