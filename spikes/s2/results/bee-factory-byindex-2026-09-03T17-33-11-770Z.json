@@ -1,0 +1,1067 @@
+{
+  "env": {
+    "label": "bee-factory-byindex",
+    "writer": "http://127.0.0.1:1633",
+    "reader": "http://127.0.0.1:1637",
+    "batch": "a2e8037ade327ae02304e43b84fbe179ae2c13005eca7793f0e3ba79c1776f82",
+    "runs": 15,
+    "writeMode": "known index",
+    "writerVersion": "2.8.2-7e703f4-dirty",
+    "readerVersion": "2.8.2-7e703f4-dirty",
+    "date": "2026-09-03T17:33:11.770Z"
+  },
+  "rows": [
+    {
+      "measure": "1KB write (known index)",
+      "n": 15,
+      "failed": 0,
+      "p50": 15,
+      "p95": 55,
+      "max": 55
+    },
+    {
+      "measure": "1KB visibility",
+      "n": 15,
+      "failed": 0,
+      "p50": 2010,
+      "p95": 4010,
+      "max": 4010
+    },
+    {
+      "measure": "1KB read by index",
+      "n": 15,
+      "failed": 0,
+      "p50": 12,
+      "p95": 19,
+      "max": 19
+    },
+    {
+      "measure": "1KB read warm",
+      "n": 15,
+      "failed": 0,
+      "p50": 2007,
+      "p95": 4008,
+      "max": 4008
+    },
+    {
+      "measure": "1KB read cold",
+      "n": 15,
+      "failed": 0,
+      "p50": 2006,
+      "p95": 4006,
+      "max": 4006
+    },
+    {
+      "measure": "3.5KB write (known index)",
+      "n": 15,
+      "failed": 0,
+      "p50": 16,
+      "p95": 47,
+      "max": 47
+    },
+    {
+      "measure": "3.5KB visibility",
+      "n": 15,
+      "failed": 0,
+      "p50": 2009,
+      "p95": 4010,
+      "max": 4010
+    },
+    {
+      "measure": "3.5KB read by index",
+      "n": 15,
+      "failed": 0,
+      "p50": 11,
+      "p95": 17,
+      "max": 17
+    },
+    {
+      "measure": "3.5KB read warm",
+      "n": 15,
+      "failed": 0,
+      "p50": 2007,
+      "p95": 4007,
+      "max": 4007
+    },
+    {
+      "measure": "3.5KB read cold",
+      "n": 15,
+      "failed": 0,
+      "p50": 2006,
+      "p95": 4007,
+      "max": 4007
+    },
+    {
+      "measure": "64KB write (known index)",
+      "n": 15,
+      "failed": 0,
+      "p50": 69,
+      "p95": 84,
+      "max": 84
+    },
+    {
+      "measure": "64KB visibility",
+      "n": 15,
+      "failed": 0,
+      "p50": 2032,
+      "p95": 4038,
+      "max": 4038
+    },
+    {
+      "measure": "64KB read by index",
+      "n": 15,
+      "failed": 0,
+      "p50": 19,
+      "p95": 24,
+      "max": 24
+    },
+    {
+      "measure": "64KB read warm",
+      "n": 15,
+      "failed": 0,
+      "p50": 2033,
+      "p95": 4029,
+      "max": 4029
+    },
+    {
+      "measure": "64KB read cold",
+      "n": 15,
+      "failed": 0,
+      "p50": 2035,
+      "p95": 4029,
+      "max": 4029
+    }
+  ],
+  "series": {
+    "1KB write (known index)": [
+      {
+        "ok": true,
+        "ms": 55
+      },
+      {
+        "ok": true,
+        "ms": 18
+      },
+      {
+        "ok": true,
+        "ms": 19
+      },
+      {
+        "ok": true,
+        "ms": 23
+      },
+      {
+        "ok": true,
+        "ms": 14
+      },
+      {
+        "ok": true,
+        "ms": 14
+      },
+      {
+        "ok": true,
+        "ms": 15
+      },
+      {
+        "ok": true,
+        "ms": 16
+      },
+      {
+        "ok": true,
+        "ms": 15
+      },
+      {
+        "ok": true,
+        "ms": 15
+      },
+      {
+        "ok": true,
+        "ms": 15
+      },
+      {
+        "ok": true,
+        "ms": 14
+      },
+      {
+        "ok": true,
+        "ms": 13
+      },
+      {
+        "ok": true,
+        "ms": 12
+      },
+      {
+        "ok": true,
+        "ms": 12
+      }
+    ],
+    "1KB visibility": [
+      {
+        "ok": true,
+        "ms": 1008
+      },
+      {
+        "ok": true,
+        "ms": 2011
+      },
+      {
+        "ok": true,
+        "ms": 1009
+      },
+      {
+        "ok": true,
+        "ms": 2010
+      },
+      {
+        "ok": true,
+        "ms": 3009
+      },
+      {
+        "ok": true,
+        "ms": 2009
+      },
+      {
+        "ok": true,
+        "ms": 1009
+      },
+      {
+        "ok": true,
+        "ms": 2009
+      },
+      {
+        "ok": true,
+        "ms": 3009
+      },
+      {
+        "ok": true,
+        "ms": 2010
+      },
+      {
+        "ok": true,
+        "ms": 3008
+      },
+      {
+        "ok": true,
+        "ms": 4010
+      },
+      {
+        "ok": true,
+        "ms": 3011
+      },
+      {
+        "ok": true,
+        "ms": 2012
+      },
+      {
+        "ok": true,
+        "ms": 1008
+      }
+    ],
+    "1KB read by index": [
+      {
+        "ok": true,
+        "ms": 16
+      },
+      {
+        "ok": true,
+        "ms": 12
+      },
+      {
+        "ok": true,
+        "ms": 14
+      },
+      {
+        "ok": true,
+        "ms": 12
+      },
+      {
+        "ok": true,
+        "ms": 13
+      },
+      {
+        "ok": true,
+        "ms": 12
+      },
+      {
+        "ok": true,
+        "ms": 12
+      },
+      {
+        "ok": true,
+        "ms": 13
+      },
+      {
+        "ok": true,
+        "ms": 14
+      },
+      {
+        "ok": true,
+        "ms": 12
+      },
+      {
+        "ok": true,
+        "ms": 11
+      },
+      {
+        "ok": true,
+        "ms": 10
+      },
+      {
+        "ok": true,
+        "ms": 12
+      },
+      {
+        "ok": true,
+        "ms": 19
+      },
+      {
+        "ok": true,
+        "ms": 12
+      }
+    ],
+    "1KB read warm": [
+      {
+        "ok": true,
+        "ms": 1008
+      },
+      {
+        "ok": true,
+        "ms": 2007
+      },
+      {
+        "ok": true,
+        "ms": 1006
+      },
+      {
+        "ok": true,
+        "ms": 2004
+      },
+      {
+        "ok": true,
+        "ms": 3007
+      },
+      {
+        "ok": true,
+        "ms": 2006
+      },
+      {
+        "ok": true,
+        "ms": 1006
+      },
+      {
+        "ok": true,
+        "ms": 2009
+      },
+      {
+        "ok": true,
+        "ms": 3008
+      },
+      {
+        "ok": true,
+        "ms": 2005
+      },
+      {
+        "ok": true,
+        "ms": 3008
+      },
+      {
+        "ok": true,
+        "ms": 4008
+      },
+      {
+        "ok": true,
+        "ms": 3007
+      },
+      {
+        "ok": true,
+        "ms": 2008
+      },
+      {
+        "ok": true,
+        "ms": 1005
+      }
+    ],
+    "1KB read cold": [
+      {
+        "ok": true,
+        "ms": 1006
+      },
+      {
+        "ok": true,
+        "ms": 2006
+      },
+      {
+        "ok": true,
+        "ms": 1005
+      },
+      {
+        "ok": true,
+        "ms": 2006
+      },
+      {
+        "ok": true,
+        "ms": 3006
+      },
+      {
+        "ok": true,
+        "ms": 2006
+      },
+      {
+        "ok": true,
+        "ms": 1005
+      },
+      {
+        "ok": true,
+        "ms": 2006
+      },
+      {
+        "ok": true,
+        "ms": 3008
+      },
+      {
+        "ok": true,
+        "ms": 2006
+      },
+      {
+        "ok": true,
+        "ms": 3007
+      },
+      {
+        "ok": true,
+        "ms": 4006
+      },
+      {
+        "ok": true,
+        "ms": 3006
+      },
+      {
+        "ok": true,
+        "ms": 2005
+      },
+      {
+        "ok": true,
+        "ms": 1006
+      }
+    ],
+    "3.5KB write (known index)": [
+      {
+        "ok": true,
+        "ms": 18
+      },
+      {
+        "ok": true,
+        "ms": 15
+      },
+      {
+        "ok": true,
+        "ms": 14
+      },
+      {
+        "ok": true,
+        "ms": 16
+      },
+      {
+        "ok": true,
+        "ms": 18
+      },
+      {
+        "ok": true,
+        "ms": 19
+      },
+      {
+        "ok": true,
+        "ms": 47
+      },
+      {
+        "ok": true,
+        "ms": 16
+      },
+      {
+        "ok": true,
+        "ms": 16
+      },
+      {
+        "ok": true,
+        "ms": 20
+      },
+      {
+        "ok": true,
+        "ms": 14
+      },
+      {
+        "ok": true,
+        "ms": 20
+      },
+      {
+        "ok": true,
+        "ms": 14
+      },
+      {
+        "ok": true,
+        "ms": 16
+      },
+      {
+        "ok": true,
+        "ms": 21
+      }
+    ],
+    "3.5KB visibility": [
+      {
+        "ok": true,
+        "ms": 1009
+      },
+      {
+        "ok": true,
+        "ms": 2008
+      },
+      {
+        "ok": true,
+        "ms": 1008
+      },
+      {
+        "ok": true,
+        "ms": 2009
+      },
+      {
+        "ok": true,
+        "ms": 3010
+      },
+      {
+        "ok": true,
+        "ms": 2008
+      },
+      {
+        "ok": true,
+        "ms": 1009
+      },
+      {
+        "ok": true,
+        "ms": 2012
+      },
+      {
+        "ok": true,
+        "ms": 3009
+      },
+      {
+        "ok": true,
+        "ms": 2009
+      },
+      {
+        "ok": true,
+        "ms": 3009
+      },
+      {
+        "ok": true,
+        "ms": 4010
+      },
+      {
+        "ok": true,
+        "ms": 3009
+      },
+      {
+        "ok": true,
+        "ms": 2010
+      },
+      {
+        "ok": true,
+        "ms": 1011
+      }
+    ],
+    "3.5KB read by index": [
+      {
+        "ok": true,
+        "ms": 11
+      },
+      {
+        "ok": true,
+        "ms": 11
+      },
+      {
+        "ok": true,
+        "ms": 11
+      },
+      {
+        "ok": true,
+        "ms": 17
+      },
+      {
+        "ok": true,
+        "ms": 13
+      },
+      {
+        "ok": true,
+        "ms": 11
+      },
+      {
+        "ok": true,
+        "ms": 11
+      },
+      {
+        "ok": true,
+        "ms": 12
+      },
+      {
+        "ok": true,
+        "ms": 15
+      },
+      {
+        "ok": true,
+        "ms": 10
+      },
+      {
+        "ok": true,
+        "ms": 11
+      },
+      {
+        "ok": true,
+        "ms": 11
+      },
+      {
+        "ok": true,
+        "ms": 11
+      },
+      {
+        "ok": true,
+        "ms": 11
+      },
+      {
+        "ok": true,
+        "ms": 10
+      }
+    ],
+    "3.5KB read warm": [
+      {
+        "ok": true,
+        "ms": 1007
+      },
+      {
+        "ok": true,
+        "ms": 2007
+      },
+      {
+        "ok": true,
+        "ms": 1006
+      },
+      {
+        "ok": true,
+        "ms": 2007
+      },
+      {
+        "ok": true,
+        "ms": 3006
+      },
+      {
+        "ok": true,
+        "ms": 2008
+      },
+      {
+        "ok": true,
+        "ms": 1006
+      },
+      {
+        "ok": true,
+        "ms": 2006
+      },
+      {
+        "ok": true,
+        "ms": 3006
+      },
+      {
+        "ok": true,
+        "ms": 2007
+      },
+      {
+        "ok": true,
+        "ms": 3008
+      },
+      {
+        "ok": true,
+        "ms": 4007
+      },
+      {
+        "ok": true,
+        "ms": 3006
+      },
+      {
+        "ok": true,
+        "ms": 2006
+      },
+      {
+        "ok": true,
+        "ms": 1006
+      }
+    ],
+    "3.5KB read cold": [
+      {
+        "ok": true,
+        "ms": 1007
+      },
+      {
+        "ok": true,
+        "ms": 2005
+      },
+      {
+        "ok": true,
+        "ms": 1006
+      },
+      {
+        "ok": true,
+        "ms": 2007
+      },
+      {
+        "ok": true,
+        "ms": 3007
+      },
+      {
+        "ok": true,
+        "ms": 2006
+      },
+      {
+        "ok": true,
+        "ms": 1004
+      },
+      {
+        "ok": true,
+        "ms": 2006
+      },
+      {
+        "ok": true,
+        "ms": 3009
+      },
+      {
+        "ok": true,
+        "ms": 2006
+      },
+      {
+        "ok": true,
+        "ms": 3008
+      },
+      {
+        "ok": true,
+        "ms": 4007
+      },
+      {
+        "ok": true,
+        "ms": 3006
+      },
+      {
+        "ok": true,
+        "ms": 2010
+      },
+      {
+        "ok": true,
+        "ms": 1009
+      }
+    ],
+    "64KB write (known index)": [
+      {
+        "ok": true,
+        "ms": 84
+      },
+      {
+        "ok": true,
+        "ms": 69
+      },
+      {
+        "ok": true,
+        "ms": 77
+      },
+      {
+        "ok": true,
+        "ms": 70
+      },
+      {
+        "ok": true,
+        "ms": 69
+      },
+      {
+        "ok": true,
+        "ms": 67
+      },
+      {
+        "ok": true,
+        "ms": 59
+      },
+      {
+        "ok": true,
+        "ms": 76
+      },
+      {
+        "ok": true,
+        "ms": 61
+      },
+      {
+        "ok": true,
+        "ms": 77
+      },
+      {
+        "ok": true,
+        "ms": 66
+      },
+      {
+        "ok": true,
+        "ms": 66
+      },
+      {
+        "ok": true,
+        "ms": 68
+      },
+      {
+        "ok": true,
+        "ms": 77
+      },
+      {
+        "ok": true,
+        "ms": 59
+      }
+    ],
+    "64KB visibility": [
+      {
+        "ok": true,
+        "ms": 1029
+      },
+      {
+        "ok": true,
+        "ms": 2035
+      },
+      {
+        "ok": true,
+        "ms": 1032
+      },
+      {
+        "ok": true,
+        "ms": 2032
+      },
+      {
+        "ok": true,
+        "ms": 3037
+      },
+      {
+        "ok": true,
+        "ms": 2027
+      },
+      {
+        "ok": true,
+        "ms": 1030
+      },
+      {
+        "ok": true,
+        "ms": 2024
+      },
+      {
+        "ok": true,
+        "ms": 3041
+      },
+      {
+        "ok": true,
+        "ms": 2032
+      },
+      {
+        "ok": true,
+        "ms": 3036
+      },
+      {
+        "ok": true,
+        "ms": 4038
+      },
+      {
+        "ok": true,
+        "ms": 3032
+      },
+      {
+        "ok": true,
+        "ms": 2025
+      },
+      {
+        "ok": true,
+        "ms": 1030
+      }
+    ],
+    "64KB read by index": [
+      {
+        "ok": true,
+        "ms": 13
+      },
+      {
+        "ok": true,
+        "ms": 14
+      },
+      {
+        "ok": true,
+        "ms": 11
+      },
+      {
+        "ok": true,
+        "ms": 19
+      },
+      {
+        "ok": true,
+        "ms": 21
+      },
+      {
+        "ok": true,
+        "ms": 21
+      },
+      {
+        "ok": true,
+        "ms": 21
+      },
+      {
+        "ok": true,
+        "ms": 17
+      },
+      {
+        "ok": true,
+        "ms": 24
+      },
+      {
+        "ok": true,
+        "ms": 22
+      },
+      {
+        "ok": true,
+        "ms": 22
+      },
+      {
+        "ok": true,
+        "ms": 22
+      },
+      {
+        "ok": true,
+        "ms": 19
+      },
+      {
+        "ok": true,
+        "ms": 12
+      },
+      {
+        "ok": true,
+        "ms": 11
+      }
+    ],
+    "64KB read warm": [
+      {
+        "ok": true,
+        "ms": 1033
+      },
+      {
+        "ok": true,
+        "ms": 2033
+      },
+      {
+        "ok": true,
+        "ms": 1033
+      },
+      {
+        "ok": true,
+        "ms": 2030
+      },
+      {
+        "ok": true,
+        "ms": 3038
+      },
+      {
+        "ok": true,
+        "ms": 2035
+      },
+      {
+        "ok": true,
+        "ms": 1028
+      },
+      {
+        "ok": true,
+        "ms": 2032
+      },
+      {
+        "ok": true,
+        "ms": 3024
+      },
+      {
+        "ok": true,
+        "ms": 2032
+      },
+      {
+        "ok": true,
+        "ms": 3032
+      },
+      {
+        "ok": true,
+        "ms": 4029
+      },
+      {
+        "ok": true,
+        "ms": 3035
+      },
+      {
+        "ok": true,
+        "ms": 2034
+      },
+      {
+        "ok": true,
+        "ms": 1028
+      }
+    ],
+    "64KB read cold": [
+      {
+        "ok": true,
+        "ms": 1039
+      },
+      {
+        "ok": true,
+        "ms": 2038
+      },
+      {
+        "ok": true,
+        "ms": 1035
+      },
+      {
+        "ok": true,
+        "ms": 2037
+      },
+      {
+        "ok": true,
+        "ms": 3037
+      },
+      {
+        "ok": true,
+        "ms": 2035
+      },
+      {
+        "ok": true,
+        "ms": 1031
+      },
+      {
+        "ok": true,
+        "ms": 2030
+      },
+      {
+        "ok": true,
+        "ms": 3038
+      },
+      {
+        "ok": true,
+        "ms": 2035
+      },
+      {
+        "ok": true,
+        "ms": 3032
+      },
+      {
+        "ok": true,
+        "ms": 4029
+      },
+      {
+        "ok": true,
+        "ms": 3039
+      },
+      {
+        "ok": true,
+        "ms": 2029
+      },
+      {
+        "ok": true,
+        "ms": 1031
+      }
+    ]
+  }
+}

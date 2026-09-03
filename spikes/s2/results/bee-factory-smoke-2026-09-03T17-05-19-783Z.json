@@ -1,0 +1,376 @@
+{
+  "env": {
+    "label": "bee-factory-smoke",
+    "writer": "http://127.0.0.1:1633",
+    "reader": "http://127.0.0.1:1637",
+    "batch": "a2e8037ade327ae02304e43b84fbe179ae2c13005eca7793f0e3ba79c1776f82",
+    "runs": 5,
+    "writerVersion": "2.8.2-7e703f4-dirty",
+    "readerVersion": "2.8.2-7e703f4-dirty",
+    "date": "2026-09-03T17:05:19.783Z"
+  },
+  "rows": [
+    {
+      "measure": "1KB write",
+      "n": 5,
+      "failed": 0,
+      "p50": 1034,
+      "p95": 2663,
+      "max": 2663
+    },
+    {
+      "measure": "1KB visibility",
+      "n": 0,
+      "failed": 5,
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    {
+      "measure": "1KB read warm",
+      "n": 0,
+      "failed": 5,
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    {
+      "measure": "1KB read cold",
+      "n": 0,
+      "failed": 5,
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    {
+      "measure": "3.5KB write",
+      "n": 5,
+      "failed": 0,
+      "p50": 1211,
+      "p95": 2071,
+      "max": 2071
+    },
+    {
+      "measure": "3.5KB visibility",
+      "n": 0,
+      "failed": 5,
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    {
+      "measure": "3.5KB read warm",
+      "n": 0,
+      "failed": 5,
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    {
+      "measure": "3.5KB read cold",
+      "n": 0,
+      "failed": 5,
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    {
+      "measure": "64KB write",
+      "n": 5,
+      "failed": 0,
+      "p50": 1068,
+      "p95": 2075,
+      "max": 2075
+    },
+    {
+      "measure": "64KB visibility",
+      "n": 5,
+      "failed": 0,
+      "p50": 2025,
+      "p95": 3025,
+      "max": 3025
+    },
+    {
+      "measure": "64KB read warm",
+      "n": 5,
+      "failed": 0,
+      "p50": 2023,
+      "p95": 3033,
+      "max": 3033
+    },
+    {
+      "measure": "64KB read cold",
+      "n": 5,
+      "failed": 0,
+      "p50": 2024,
+      "p95": 3026,
+      "max": 3026
+    }
+  ],
+  "series": {
+    "1KB write": [
+      {
+        "ok": true,
+        "ms": 72
+      },
+      {
+        "ok": true,
+        "ms": 1034
+      },
+      {
+        "ok": true,
+        "ms": 2025
+      },
+      {
+        "ok": true,
+        "ms": 1027
+      },
+      {
+        "ok": true,
+        "ms": 2663
+      }
+    ],
+    "1KB visibility": [
+      {
+        "ok": false,
+        "error": "timeout after 30000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 30000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 30000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 30000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 30000 ms"
+      }
+    ],
+    "1KB read warm": [
+      {
+        "ok": false,
+        "error": "Bytes#checkByteLength: bytes length is 1016 but expected 32 or 64"
+      },
+      {
+        "ok": false,
+        "error": "Bytes#checkByteLength: bytes length is 1016 but expected 32 or 64"
+      },
+      {
+        "ok": false,
+        "error": "Bytes#checkByteLength: bytes length is 1016 but expected 32 or 64"
+      },
+      {
+        "ok": false,
+        "error": "Bytes#checkByteLength: bytes length is 1016 but expected 32 or 64"
+      },
+      {
+        "ok": false,
+        "error": "Bytes#checkByteLength: bytes length is 1016 but expected 32 or 64"
+      }
+    ],
+    "1KB read cold": [
+      {
+        "ok": false,
+        "error": "Bytes#checkByteLength: bytes length is 1016 but expected 32 or 64"
+      },
+      {
+        "ok": false,
+        "error": "Bytes#checkByteLength: bytes length is 1016 but expected 32 or 64"
+      },
+      {
+        "ok": false,
+        "error": "Bytes#checkByteLength: bytes length is 1016 but expected 32 or 64"
+      },
+      {
+        "ok": false,
+        "error": "Bytes#checkByteLength: bytes length is 1016 but expected 32 or 64"
+      },
+      {
+        "ok": false,
+        "error": "Bytes#checkByteLength: bytes length is 1016 but expected 32 or 64"
+      }
+    ],
+    "3.5KB write": [
+      {
+        "ok": true,
+        "ms": 47
+      },
+      {
+        "ok": true,
+        "ms": 1211
+      },
+      {
+        "ok": true,
+        "ms": 2039
+      },
+      {
+        "ok": true,
+        "ms": 1056
+      },
+      {
+        "ok": true,
+        "ms": 2071
+      }
+    ],
+    "3.5KB visibility": [
+      {
+        "ok": false,
+        "error": "timeout after 30000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 30000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 30000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 30000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 30000 ms"
+      }
+    ],
+    "3.5KB read warm": [
+      {
+        "ok": false,
+        "error": "Bytes#checkByteLength: bytes length is 3576 but expected 32 or 64"
+      },
+      {
+        "ok": false,
+        "error": "Bytes#checkByteLength: bytes length is 3576 but expected 32 or 64"
+      },
+      {
+        "ok": false,
+        "error": "Bytes#checkByteLength: bytes length is 3576 but expected 32 or 64"
+      },
+      {
+        "ok": false,
+        "error": "Bytes#checkByteLength: bytes length is 3576 but expected 32 or 64"
+      },
+      {
+        "ok": false,
+        "error": "Bytes#checkByteLength: bytes length is 3576 but expected 32 or 64"
+      }
+    ],
+    "3.5KB read cold": [
+      {
+        "ok": false,
+        "error": "Bytes#checkByteLength: bytes length is 3576 but expected 32 or 64"
+      },
+      {
+        "ok": false,
+        "error": "Bytes#checkByteLength: bytes length is 3576 but expected 32 or 64"
+      },
+      {
+        "ok": false,
+        "error": "Bytes#checkByteLength: bytes length is 3576 but expected 32 or 64"
+      },
+      {
+        "ok": false,
+        "error": "Bytes#checkByteLength: bytes length is 3576 but expected 32 or 64"
+      },
+      {
+        "ok": false,
+        "error": "Bytes#checkByteLength: bytes length is 3576 but expected 32 or 64"
+      }
+    ],
+    "64KB write": [
+      {
+        "ok": true,
+        "ms": 152
+      },
+      {
+        "ok": true,
+        "ms": 1068
+      },
+      {
+        "ok": true,
+        "ms": 2061
+      },
+      {
+        "ok": true,
+        "ms": 1055
+      },
+      {
+        "ok": true,
+        "ms": 2075
+      }
+    ],
+    "64KB visibility": [
+      {
+        "ok": true,
+        "ms": 1035
+      },
+      {
+        "ok": true,
+        "ms": 2067
+      },
+      {
+        "ok": true,
+        "ms": 1026
+      },
+      {
+        "ok": true,
+        "ms": 2025
+      },
+      {
+        "ok": true,
+        "ms": 3025
+      }
+    ],
+    "64KB read warm": [
+      {
+        "ok": true,
+        "ms": 1029
+      },
+      {
+        "ok": true,
+        "ms": 2026
+      },
+      {
+        "ok": true,
+        "ms": 1035
+      },
+      {
+        "ok": true,
+        "ms": 2023
+      },
+      {
+        "ok": true,
+        "ms": 3033
+      }
+    ],
+    "64KB read cold": [
+      {
+        "ok": true,
+        "ms": 1024
+      },
+      {
+        "ok": true,
+        "ms": 2024
+      },
+      {
+        "ok": true,
+        "ms": 1023
+      },
+      {
+        "ok": true,
+        "ms": 2025
+      },
+      {
+        "ok": true,
+        "ms": 3026
+      }
+    ]
+  }
+}

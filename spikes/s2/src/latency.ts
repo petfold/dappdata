@@ -5,7 +5,7 @@
 //
 // WRITER  node the dapp writes through. READER  a different node, for visibility and cold reads.
 // BATCH   postage batch id on WRITER; if unset, buys one there (only sane on bee-factory / testnet).
-import { Bee } from '@ethersphere/bee-js'
+import { Bee, type FeedReader } from '@ethersphere/bee-js'
 import { PrivateKey, Topic } from '@ethersphere/core-sdk'
 import { randomBytes } from 'node:crypto'
 import { mkdir, writeFile } from 'node:fs/promises'
@@ -76,19 +76,27 @@ async function main() {
         written = BigInt(i) // fresh topic per size, so update i has index i
       }))
       // visibility: poll read-latest on the other node until the new index shows up
+      // read-latest through a given client: inline payload, or reference plus the data behind it
+      const readLatest = async (bee: Bee, rd: FeedReader) => {
+        if (viaReference) { const u = await rd.downloadReference(); await bee.data.download(u.reference); return u.feedIndex.toBigInt() }
+        const u = await rd.downloadPayload(); return u.feedIndex.toBigInt()
+      }
+      // visibility: poll read-latest on the other node until the new index shows up
       add(`${sizeName} visibility`, await timed(() => withTimeout((async () => {
         for (;;) {
-          try {
-            const u = await r.downloadReference()
-            if (u.feedIndex.toBigInt() >= written) { if (viaReference) await reader.data.download(u.reference); return }
-          } catch { /* not yet */ }
+          try { if ((await readLatest(reader, r)) >= written) return } catch { /* not yet */ }
           await new Promise(res => setTimeout(res, POLL_MS))
         }
       })(), TIMEOUT_MS)))
+      // read by known index: skips Bee's feed lookup, fetches the SOC directly (what a client with a cached index can do)
+      add(`${sizeName} read by index`, await timed(async () => {
+        if (viaReference) { const u = await r.downloadReference({ index: Number(written) }); await reader.data.download(u.reference) }
+        else await r.downloadPayload({ index: Number(written) })
+      }))
       // warm read-latest: same client, second read
-      add(`${sizeName} read warm`, await timed(async () => { const u = await r.downloadReference(); if (viaReference) await reader.data.download(u.reference) }))
+      add(`${sizeName} read warm`, await timed(() => readLatest(reader, r)))
       // cold read-latest: fresh client against the reader node ("restore on a new device", minus node-level caches)
-      add(`${sizeName} read cold`, await timed(async () => { const fresh = new Bee(READER).feed.makeReader(topic, owner); const u = await fresh.downloadReference(); if (viaReference) await new Bee(READER).data.download(u.reference) }))
+      add(`${sizeName} read cold`, await timed(() => { const fresh = new Bee(READER); return readLatest(fresh, fresh.feed.makeReader(topic, owner)) }))
       process.stdout.write(`${sizeName} ${i + 1}/${RUNS}\r`)
     }
     console.log()
