@@ -58,6 +58,15 @@ importers:
         specifier: ^5.9.0
         version: 5.9.3
 
+  spikes/s3:
+    dependencies:
+      '@ethersphere/bee-js':
+        specifier: 13.0.0
+        version: 13.0.0
+      ethers:
+        specifier: ^6.15.0
+        version: 6.17.0
+
 packages:
 
   '@adraffy/ens-normalize@1.11.1':

@@ -1,0 +1,14 @@
+{
+  "name": "@dappdata/spike-s3",
+  "private": true,
+  "type": "module",
+  "description": "S3 funding spike. Throwaway. See spikes/s3/RESULTS.md.",
+  "scripts": {
+    "pool": "node src/pool.mjs",
+    "sbzz": "node src/sbzz.mjs"
+  },
+  "dependencies": {
+    "@ethersphere/bee-js": "13.0.0",
+    "ethers": "^6.15.0"
+  }
+}
