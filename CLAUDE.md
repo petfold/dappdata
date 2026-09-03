@@ -33,7 +33,7 @@ Origin: Solar Punk Ideabox **IDEA-190** — https://solar-punk.atlassian.net/bro
 ## Toolchain and environment
 
 - Node 22 LTS, pnpm workspaces, TypeScript strict, vitest. ESLint + Prettier with defaults.
-- `@ethersphere/bee-js`: **13.0.0** is the latest on npm at handoff (2026-09-03); the Swarm skill and most docs still describe 12.x. First task of Phase 0: read the 13.0 changelog for feed and single-owner-chunk API changes, then pin (see D10).
+- `@ethersphere/bee-js` **13.0.0** and `@ethersphere/core-sdk` **0.1.1**, both pinned exact (D10, closed 2026-09-03). 13 has a namespaced API (`bee.feed.*`, `bee.soc.*`, `bee.stamp.*`, `bee.chunk.*`); primitives and the `Stamper` live in core-sdk. The Swarm skill and most docs still show 12.x: translate any snippet to the namespaced form before use, or run the shipped `bee-js-codemod`.
 - Local Bee: **bee-factory** (https://github.com/ethersphere/bee-factory). Bee 2.8.1 removed the old `bee dev` mode, so bee-factory is the supported local path.
 - Testnet: Sepolia. Mainnet: Gnosis Chain (BZZ, postage contract).
 - Reference material: the `swarm` skill if installed; https://docs.ethswarm.org; https://github.com/ethersphere/bee-js.
@@ -66,6 +66,6 @@ Create folders when a phase needs them, not before.
 
 ## Status
 
-Phase 0 not started.
+Phase 0 started 2026-09-03. D10 closed (bee-js 13.0.0 + core-sdk 0.1.1). D3 direction set: user owns the batch, anyone pays (see D12 for client-side stamping, D13 for browser-first, D14 for the integration surface).
 
-**Next action:** open `docs/SPIKES.md`, start with S1 (key derivation). Before S1, do the bee-js 13.0 changelog check and record the pin in D10.
+**Next action:** open `docs/SPIKES.md`, run S1 (key derivation). S2 needs a Sepolia light node running for a day; start it early.

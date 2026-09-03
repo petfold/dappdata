@@ -2,7 +2,7 @@
 
 Three experiments. Each is throwaway code under `spikes/<id>/` with a `RESULTS.md` next to it. The result, not the code, is the deliverable. When a spike closes a decision, update `DECISIONS.md` in the same commit.
 
-Before any spike: read the bee-js 13.0 changelog, note feed and single-owner-chunk API changes, and pin the version (D10).
+Before any spike: ~~read the bee-js 13.0 changelog and pin the version~~ done, see D10: bee-js 13.0.0 + core-sdk 0.1.1, namespaced API, `Stamper` in core-sdk.
 
 ---
 

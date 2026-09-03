@@ -69,9 +69,15 @@ Add new entries at the end. Do not renumber.
 **Leaning.** (a) for inline payloads, (a)+(b) for blobs. (b) alone leaks the reference to anyone who can read the feed. (c) has no role while there is one reader.
 
 ## D10 — bee-js version pin
-**Status:** open — first task of Phase 0
-**Context.** 13.0.0 is the latest on npm at handoff; the Swarm skill and most examples describe 12.x.
-**Decision needed.** Read the 13.0 changelog for feed / SOC / upload API changes. Pin 13.x if feeds work as documented; otherwise pin the latest 12.x and note what blocks 13.
+**Status:** closed (changelog check, 2026-09-03)
+**Context.** 13.0.0 (released 2026-08-25) is the latest on npm; the Swarm skill and most examples describe 12.x.
+**What changed in 13.0.** Two breaking refactors, no protocol-level change:
+1. *Namespaced API* (#1219). Methods moved off `bee.*` into namespaces: `bee.feed.makeReader / makeWriter / fetchLatestUpdate / createManifest`, `bee.soc.makeReader / makeWriter`, `bee.stamp.create / topUp / dilute / get / getGlobal`, `bee.chunk.upload / download`, `bee.data`, `bee.file`, `bee.collection`, `bee.grantee`, `bee.pin`, and so on. A codemod ships in the package (`bee-js-codemod`) for 12→13 migration.
+2. *Primitives moved to `@ethersphere/core-sdk`* (#1236; published as `core-sdk`, not the `swarm-core` name the PR mentions). `PrivateKey`, `PublicKey`, `EthAddress`, `Topic`, `Identifier`, `FeedIndex`, `BatchId`, `Reference`, `Signature`, `Bytes`, SOC and CAC builders, BMT, Mantaray, and the **`Stamper`** now live in core-sdk 0.1.1 and are re-exported from bee-js. core-sdk does no network I/O and runs in the browser.
+Feeds and SOCs work as documented: sequential feeds via `makeWriter(topic, signer)` and `fetchLatestUpdate`; the feed signer is a `PrivateKey`, so the derived key (D1) plugs straight in. Supported Bee is 2.8.1, API 8.1.0.
+**Relevant to D12.** Client-side stamping exists: `Stamper.fromBlank(signer, batchId, depth).stamp(chunkAddress)` returns an `EnvelopeWithBatchId`; bee-js sends it as the `swarm-postage-stamp` header instead of `swarm-postage-batch-id`. `bee.chunk.upload` is typed to accept an envelope. The SOC and feed upload paths are typed `BatchId` only, though the header code accepts an envelope at runtime; S3 tests whether a feed update can be uploaded with an envelope (cast, or build the SOC with core-sdk and upload via `bee.chunk.upload`). `bee.stamp.create` waits up to 240 s for a new batch to become usable, which is the order of delay D3's "start funding at sign-in" must hide.
+**Decision.** Pin `@ethersphere/bee-js` **13.0.0 exact** and `@ethersphere/core-sdk` **0.1.1 exact** as a direct dependency (we use `Stamper`, SOC builders, and typed bytes directly). Bump only by an entry here. Reasoning: 13 is where the API is going, the codemod exists so examples written for 12 translate mechanically, and core-sdk is exactly the browser-side primitive layer dappdata needs. Risks: 13.0.0 is nine days old and core-sdk is 0.1.x, so expect point releases; S1 and S2 will surface any breakage early, while the code is still throwaway.
+**Consequences.** Any 12.x snippet from the Swarm skill or docs must be translated to the namespaced form before use. ARCHITECTURE's dependency list gains core-sdk.
 
 ## D11 — Name, npm name, repo structure
 **Status:** closed (Peter, 2026-09-03)

@@ -123,7 +123,8 @@ Fifteen lines is the budget for the README example; if the real API needs more, 
 
 ## Dependencies
 
-- `@ethersphere/bee-js` (pinned per D10) — feeds, SOCs, uploads, encryption references.
+- `@ethersphere/bee-js` **13.0.0** (pinned exact, D10) — feeds, SOCs, uploads, stamps, the HTTP transport to a Bee node.
+- `@ethersphere/core-sdk` **0.1.1** (pinned exact, D10) — browser-safe primitives: `PrivateKey`, `Topic`, `FeedIndex`, SOC/CAC builders, `Stamper` for client-side stamping (D12). No network I/O.
 - `@noble/hashes`, `@noble/curves` — keccak, HKDF, secp256k1 for feed signing. Small, audited, no native code.
 - `siwe` — message parsing only, if needed; the dapp does the sign-in.
 - WebCrypto (platform) — AES-GCM.
