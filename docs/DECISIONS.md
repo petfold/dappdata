@@ -12,7 +12,7 @@ Add new entries at the end. Do not renumber.
 **Consequences.** Anything that needs a Bee change is out of scope and goes back to IDEA-190 as a note.
 
 ## D1 — Derivation message and signing method
-**Status:** closure drafted from S1 (Claude, 2026-09-03); Peter confirms, then closed
+**Status:** closed (S1 results, Peter confirmed 2026-09-03)
 **Context.** Wallets cannot raw-sign feed updates. The storage key must come from a signature over a fixed message.
 **Options.** (a) EIP-712 typed data via `eth_signTypedData_v4`, origin-bound; (b) `personal_sign` over a text message; (c) both, typed data preferred with text fallback.
 **Decision.** (c), with three details fixed by S1 (`spikes/s1/RESULTS.md`):
@@ -23,7 +23,7 @@ Add new entries at the end. Do not renumber.
 **Consequences.** The message is part of the key. Changing anything but `scope` changes every user's key; `scope` moves only with a migration (Phase 4). `ARCHITECTURE.md` updated in the same commit.
 
 ## D2 — Supported wallets and smart-account policy
-**Status:** closure drafted from S1 (Claude, 2026-09-03); Peter confirms, then closed
+**Status:** closed (S1 results, Peter confirmed 2026-09-03)
 **Context.** Deterministic ECDSA (RFC 6979) holds for MetaMask and hardware wallets; ERC-1271 contract wallets and passkey wallets cannot give a deterministic secp256k1 signature.
 **Options for contract accounts.** (a) Refuse with a clear message; (b) dapp-held escrow key, released after SIWE; (c) session key registered on the account.
 **Decision.**
@@ -64,7 +64,7 @@ Add new entries at the end. Do not renumber.
 **Consequences.** Breaking to change later. Must be settled before Phase 5.
 
 ## D8 — Relationship to swarm-id (snaha/swarm-id) and IDEA-176
-**Status:** closure drafted from S1 (Claude, 2026-09-03); Peter confirms, then closed
+**Status:** closed (S1 results, Peter confirmed 2026-09-03)
 **Context.** swarm-id is a work-in-progress browser master identity for Swarm dapps: it derives app-specific secrets, signs feed updates, and isolates apps from each other. That overlaps dappdata's derivation layer. IDEA-176 (Swarm ID core storage) is the Foundation-side identity substrate.
 **Options.** (a) Build dappdata's derivation on swarm-id; (b) stay independent and SIWE-native, but align topic and isolation conventions so state is portable later; (c) independent, no alignment.
 **Decision.** (b). Reasons in `spikes/s1/RESULTS.md`, D8 section: swarm-id needs a hosted trusted domain and its own account; dappdata's point is to need neither. Concretely:

@@ -41,7 +41,7 @@ Status: draft for Peter's review, 2026-09-03. Supersedes the chat draft of the s
 
 **Size.** Days per spike. S2 needs a Sepolia light node running for a day; start it first.
 
-**S1 outcome (2026-09-03).** Done: derivation message, Node and library determinism, MetaMask and Rabby matrix, cross-wallet portability, D8 reading. Not run: Coinbase Wallet, WalletConnect mobile, Ledger, the Safe/passkey trial (step 5). Result: the sign-in identity can derive a stable storage key with one wallet signature, in every wallet and library tried. D1, D2, D8 closures drafted in `DECISIONS.md`, awaiting Peter. The remaining wallets move to Phase 3, where the demo runs against them. Gate for Phase 0 stays open on S2 and S3.
+**S1 outcome (2026-09-03).** Done: derivation message, Node and library determinism, MetaMask and Rabby matrix, cross-wallet portability, D8 reading. Not run: Coinbase Wallet, WalletConnect mobile, Ledger, the Safe/passkey trial (step 5). Result: the sign-in identity can derive a stable storage key with one wallet signature, in every wallet and library tried. D1, D2, D8 closed in `DECISIONS.md` (Peter, 2026-09-03). The remaining wallets move to Phase 3, where the demo runs against them. Gate for Phase 0 stays open on S2 and S3.
 
 ---
 
