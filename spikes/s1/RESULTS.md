@@ -19,6 +19,18 @@ Status: **in progress** (started 2026-09-03). Node-side checks and D8 reading do
 | core-sdk `PrivateKey(feedKey)` gives the same feed address as our noble derivation | yes (note: core-sdk `toHex()` omits the `0x` prefix) |
 | Typed-data path and fallback path give the same key | **no** (see F2) |
 
+## Signing-library results (2026-09-03, `pnpm libraries`, throwaway key, 20 runs each)
+
+The libraries real wallets sign with, run headless. Same key, same message, same signature in every library and every run.
+
+| Library | Used by | Typed data v4: distinct of 20 | personal_sign: distinct of 20 | Identical across libraries |
+|---|---|---|---|---|
+| ethers v6 | many dapps, some wallets | 1 | 1 | yes |
+| @metamask/eth-sig-util 8 | the MetaMask extension | 1 | 1 | yes |
+| viem 2 | Rabby, wagmi-based wallets | 1 | 1 | yes |
+
+So the software layer is deterministic (RFC 6979) and interoperable. What remains for the real-wallet matrix is what code cannot see: whether each wallet's UI passes the message through unchanged, how it displays `origin` and `purpose`, hardware-wallet firmware (Ledger signs on-device with its own implementation), and mobile wallets through WalletConnect.
+
 ## Findings for D1 / D2
 
 **F1 — no `chainId` in the EIP-712 domain.** SPIKES.md proposed `{ name, version, chainId }`. MetaMask rejects `eth_signTypedData_v4` when the domain `chainId` differs from the wallet's current chain, so a chain-bound domain would either force a chain switch before sign-in or derive a *different key per chain the user happens to be on*. `chainId` is optional in EIP-712. The spike omits it; the key depends on `account`, `origin`, and `scope` only. **Recommend for D1.**

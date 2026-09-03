@@ -6,13 +6,16 @@
   "scripts": {
     "determinism": "tsx src/determinism.ts",
     "build:web": "esbuild src/web.ts --bundle --format=esm --outfile=web/derive.js --target=es2022",
-    "serve": "pnpm build:web && node src/serve.mjs"
+    "serve": "pnpm build:web && node src/serve.mjs",
+    "libraries": "tsx src/libraries.ts"
   },
   "dependencies": {
     "@ethersphere/core-sdk": "0.1.1",
+    "@metamask/eth-sig-util": "^8.2.0",
     "@noble/curves": "^1.9.0",
     "@noble/hashes": "^1.8.0",
-    "ethers": "^6.15.0"
+    "ethers": "^6.15.0",
+    "viem": "^2.56.3"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",
