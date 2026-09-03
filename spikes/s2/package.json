@@ -1,0 +1,18 @@
+{
+  "name": "@dappdata/spike-s2",
+  "private": true,
+  "type": "module",
+  "description": "S2 latency spike. Throwaway. See spikes/s2/RESULTS.md.",
+  "scripts": {
+    "latency": "tsx src/latency.ts"
+  },
+  "dependencies": {
+    "@ethersphere/bee-js": "13.0.0",
+    "@ethersphere/core-sdk": "0.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}
