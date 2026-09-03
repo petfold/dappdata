@@ -1,0 +1,347 @@
+{
+  "env": {
+    "label": "public-gateways-sameoperator",
+    "writer": "https://api.gateway.ethswarm.org",
+    "reader": "https://bzz.link",
+    "batch": "0000000000000000000000000000000000000000000000000000000000000000",
+    "runs": 3,
+    "writeMode": "known index",
+    "writerVersion": "unknown (gateway)",
+    "readerVersion": "unknown (gateway)",
+    "date": "2026-09-03T18:07:50.047Z"
+  },
+  "rows": [
+    {
+      "measure": "1KB write (known index)",
+      "n": 3,
+      "failed": 0,
+      "p50": 431,
+      "p95": 461,
+      "max": 461
+    },
+    {
+      "measure": "1KB visibility",
+      "n": 3,
+      "failed": 0,
+      "p50": 2248,
+      "p95": 2502,
+      "max": 2502
+    },
+    {
+      "measure": "1KB read by index",
+      "n": 3,
+      "failed": 0,
+      "p50": 167,
+      "p95": 510,
+      "max": 510
+    },
+    {
+      "measure": "1KB read warm",
+      "n": 3,
+      "failed": 0,
+      "p50": 1695,
+      "p95": 2568,
+      "max": 2568
+    },
+    {
+      "measure": "1KB read cold",
+      "n": 3,
+      "failed": 0,
+      "p50": 2699,
+      "p95": 3645,
+      "max": 3645
+    },
+    {
+      "measure": "3.5KB write (known index)",
+      "n": 3,
+      "failed": 0,
+      "p50": 460,
+      "p95": 483,
+      "max": 483
+    },
+    {
+      "measure": "3.5KB visibility",
+      "n": 3,
+      "failed": 0,
+      "p50": 2379,
+      "p95": 5616,
+      "max": 5616
+    },
+    {
+      "measure": "3.5KB read by index",
+      "n": 3,
+      "failed": 0,
+      "p50": 187,
+      "p95": 417,
+      "max": 417
+    },
+    {
+      "measure": "3.5KB read warm",
+      "n": 3,
+      "failed": 0,
+      "p50": 1794,
+      "p95": 2533,
+      "max": 2533
+    },
+    {
+      "measure": "3.5KB read cold",
+      "n": 3,
+      "failed": 0,
+      "p50": 2659,
+      "p95": 3619,
+      "max": 3619
+    },
+    {
+      "measure": "64KB write (known index)",
+      "n": 3,
+      "failed": 0,
+      "p50": 1183,
+      "p95": 1265,
+      "max": 1265
+    },
+    {
+      "measure": "64KB visibility",
+      "n": 3,
+      "failed": 0,
+      "p50": 2060,
+      "p95": 2180,
+      "max": 2180
+    },
+    {
+      "measure": "64KB read by index",
+      "n": 3,
+      "failed": 0,
+      "p50": 285,
+      "p95": 421,
+      "max": 421
+    },
+    {
+      "measure": "64KB read warm",
+      "n": 3,
+      "failed": 0,
+      "p50": 1649,
+      "p95": 2340,
+      "max": 2340
+    },
+    {
+      "measure": "64KB read cold",
+      "n": 3,
+      "failed": 0,
+      "p50": 1696,
+      "p95": 2691,
+      "max": 2691
+    }
+  ],
+  "series": {
+    "1KB write (known index)": [
+      {
+        "ok": true,
+        "ms": 240
+      },
+      {
+        "ok": true,
+        "ms": 431
+      },
+      {
+        "ok": true,
+        "ms": 461
+      }
+    ],
+    "1KB visibility": [
+      {
+        "ok": true,
+        "ms": 1087
+      },
+      {
+        "ok": true,
+        "ms": 2248
+      },
+      {
+        "ok": true,
+        "ms": 2502
+      }
+    ],
+    "1KB read by index": [
+      {
+        "ok": true,
+        "ms": 510
+      },
+      {
+        "ok": true,
+        "ms": 167
+      },
+      {
+        "ok": true,
+        "ms": 162
+      }
+    ],
+    "1KB read warm": [
+      {
+        "ok": true,
+        "ms": 1695
+      },
+      {
+        "ok": true,
+        "ms": 2568
+      },
+      {
+        "ok": true,
+        "ms": 1693
+      }
+    ],
+    "1KB read cold": [
+      {
+        "ok": true,
+        "ms": 2585
+      },
+      {
+        "ok": true,
+        "ms": 3645
+      },
+      {
+        "ok": true,
+        "ms": 2699
+      }
+    ],
+    "3.5KB write (known index)": [
+      {
+        "ok": true,
+        "ms": 483
+      },
+      {
+        "ok": true,
+        "ms": 460
+      },
+      {
+        "ok": true,
+        "ms": 437
+      }
+    ],
+    "3.5KB visibility": [
+      {
+        "ok": true,
+        "ms": 935
+      },
+      {
+        "ok": true,
+        "ms": 5616
+      },
+      {
+        "ok": true,
+        "ms": 2379
+      }
+    ],
+    "3.5KB read by index": [
+      {
+        "ok": true,
+        "ms": 187
+      },
+      {
+        "ok": true,
+        "ms": 417
+      },
+      {
+        "ok": true,
+        "ms": 148
+      }
+    ],
+    "3.5KB read warm": [
+      {
+        "ok": true,
+        "ms": 1632
+      },
+      {
+        "ok": true,
+        "ms": 2533
+      },
+      {
+        "ok": true,
+        "ms": 1794
+      }
+    ],
+    "3.5KB read cold": [
+      {
+        "ok": true,
+        "ms": 2573
+      },
+      {
+        "ok": true,
+        "ms": 3619
+      },
+      {
+        "ok": true,
+        "ms": 2659
+      }
+    ],
+    "64KB write (known index)": [
+      {
+        "ok": true,
+        "ms": 1265
+      },
+      {
+        "ok": true,
+        "ms": 1183
+      },
+      {
+        "ok": true,
+        "ms": 1180
+      }
+    ],
+    "64KB visibility": [
+      {
+        "ok": true,
+        "ms": 1213
+      },
+      {
+        "ok": true,
+        "ms": 2060
+      },
+      {
+        "ok": true,
+        "ms": 2180
+      }
+    ],
+    "64KB read by index": [
+      {
+        "ok": true,
+        "ms": 285
+      },
+      {
+        "ok": true,
+        "ms": 421
+      },
+      {
+        "ok": true,
+        "ms": 283
+      }
+    ],
+    "64KB read warm": [
+      {
+        "ok": true,
+        "ms": 1521
+      },
+      {
+        "ok": true,
+        "ms": 2340
+      },
+      {
+        "ok": true,
+        "ms": 1649
+      }
+    ],
+    "64KB read cold": [
+      {
+        "ok": true,
+        "ms": 1696
+      },
+      {
+        "ok": true,
+        "ms": 2691
+      },
+      {
+        "ok": true,
+        "ms": 1689
+      }
+    ]
+  }
+}

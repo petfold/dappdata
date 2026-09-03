@@ -72,4 +72,6 @@ Phase 0 started 2026-09-03. D10 closed (bee-js 13.0.0 + core-sdk 0.1.1). D3 dire
 
 **Sepolia node for S2/S3:** Bee 2.8.2 (Swarm Desktop binary), `/home/test/bee-sepolia/`, API `127.0.0.1:1643`. Address `0x13cB9947C508cf52a233a1E97d80Dd2485589481` needs sETH then sBZZ; it exits until funded; restart with `/home/test/bee-sepolia/start.sh`. Swarm Desktop's own mainnet node (`:1633`) is off limits.
 
-**Next action:** S2 (latency) and S3 (funding) per `docs/SPIKES.md`. The Sepolia node needs sBZZ from Peter before it can buy a batch; S2 reads and bee-factory work can start before that.
+**S2 in progress** (`spikes/s2/RESULTS.md`): bee-factory and public-gateway paths measured. Writes are 15–70 ms locally, 0.4–1.2 s via gateway. Bee's feed lookup costs 2–4 s everywhere; reading by a known index costs 10–300 ms, so the SDK must cache the index per slot (D5 leaning). bee-factory runs via `npx @ethersphere/bee-factory start`; its queen takes port 1633, so Swarm Desktop's node cannot run at the same time (`bee-factory stop` frees it). Public gateways `api.gateway.ethswarm.org` and `bzz.link` still accept writes in 2026.
+
+**Next action:** Peter sends sBZZ to the Sepolia node, then S2 paths 2–3 and S3. Also remove the stale `bee-sepolia` docker container (crash-looping, binds 1633).

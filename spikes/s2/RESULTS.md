@@ -1,6 +1,6 @@
 # S2 — Latency: results
 
-Status: **in progress** (started 2026-09-03). Path 1 (bee-factory) running; paths 2–4 wait for sBZZ on the Sepolia node (path 2, 3) and a check of public gateways (path 4).
+Status: **in progress** (started 2026-09-03). Path 1 (bee-factory) and path 4 (public gateways) measured. Paths 2 and 3 wait for sBZZ on the Sepolia node. Main finding so far: Bee's feed lookup costs 2–4 s wherever it runs; a known index makes reads 10–300 ms.
 
 ## What is here
 
@@ -72,13 +72,60 @@ _pending: node has sETH, needs sBZZ for a batch_
 
 _pending_
 
-## Path 4 — public gateway
+## Path 4 — public gateways (Gnosis mainnet, someone else's stamps)
 
-_pending: check which gateways accept writes in 2026_
+**Status check (2026-09-03).** Four gateways answered `/health`. `api.gateway.ethswarm.org`, `bzz.link`, and `gateway.fairdatasociety.org` accept `POST /bytes` with any batch id (the proxy stamps with its own batch) and expose `/soc` and `/feeds`; a probe write was retrievable from all four within seconds. `gateway.ethswarm.org` (405) and `download.gateway.ethswarm.org` (404) are read-only. So a public write path exists in 2026, on a gateway operator's goodwill; nothing in D3 should depend on it.
+
+**Run: 10 iterations, write via `api.gateway.ethswarm.org`, read via `gateway.fairdatasociety.org` (a different operator)** (`results/public-gateways-2026-09-03T17-13-17-768Z.json`, 120 s visibility timeout):
+
+| measure | n | failed | p50 ms | p95 ms | max ms |
+|---|---|---|---|---|---|
+| 1KB write (known index) | 10 | 0 | 463 | 2000 | 2000 |
+| 1KB visibility | 3 | 7 | 59199 | 60526 | 60526 |
+| 1KB read warm | 9 | 1 | 379 | 2552 | 2552 |
+| 1KB read cold | 10 | 0 | 145 | 1770 | 1770 |
+| 3.5KB write (known index) | 10 | 0 | 501 | 5461 | 5461 |
+| 3.5KB visibility | 4 | 6 | 54913 | 60779 | 60779 |
+| 3.5KB read warm | 10 | 0 | 139 | 1921 | 1921 |
+| 3.5KB read cold | 10 | 0 | 129 | 593 | 593 |
+| 64KB write (known index) | 10 | 0 | 1217 | 1294 | 1294 |
+| 64KB visibility | 0 | 10 | timeout | | |
+| 64KB read warm | 0 | 10 | error | | |
+| 64KB read cold | 0 | 10 | error | | |
+
+Reading the failures:
+- **Visibility across operators.** The very first update of each feed was visible in about 1 s (1185 and 894 ms). Every later update took about 60 s or was not seen inside 120 s. That pattern, first fast then a ~60 s wall, says the reading gateway (or its Bee node) caches the feed lookup result and serves the stale "latest" until a cache expires. The network itself delivered the first update in a second. Whether that cache is nginx, the proxy, or Bee's own feed cache needs a controlled reader (path 2) to tell.
+- **Reads once visible are fast**: 130–380 ms p50 for inline payloads through a gateway on another continent's network. Much faster than the local-cluster lookup reads above, because a cached lookup answer is exactly what makes a stale read fast.
+- **64 KB by reference failed on the reader** with a signature-recovery error from bee-js ("bad point: is not on curve") on every read, while the same code path worked on bee-factory. The gateway returned something for the SOC that bee-js could not verify; unresolved here. To reproduce against the Sepolia node (path 2), where we control both ends, before blaming the gateway.
+- One 1 KB warm read failed with a network error.
+
+**Run: 3 iterations, write via `api.gateway.ethswarm.org`, read via `bzz.link`** (`results/public-gateways-sameoperator-2026-09-03T18-07-50-047Z.json`, 20 s timeout):
+
+| measure | n | failed | p50 ms | p95 ms |
+|---|---|---|---|---|
+| 1KB write (known index) | 3 | 0 | 431 | 461 |
+| 1KB visibility | 3 | 0 | 2248 | 2502 |
+| 1KB read by index | 3 | 0 | 167 | 510 |
+| 1KB read warm (lookup) | 3 | 0 | 1695 | 2568 |
+| 1KB read cold (lookup) | 3 | 0 | 2699 | 3645 |
+| 3.5KB visibility | 3 | 0 | 2379 | 5616 |
+| 3.5KB read by index | 3 | 0 | 187 | 417 |
+| 64KB write (known index) | 3 | 0 | 1183 | 1265 |
+| 64KB visibility | 3 | 0 | 2060 | 2180 |
+| 64KB read by index | 3 | 0 | 285 | 421 |
+| 64KB read cold (lookup) | 3 | 0 | 1696 | 2691 |
+
+No failures, 64 KB included. Both the 60 s visibility wall and the 64 KB read error were the Fair Data Society gateway's, not Swarm's. Through the Foundation's gateways on mainnet: **write 0.4–1.2 s, visible on another gateway in 2–2.5 s, read by known index 0.2–0.3 s, lookup-based read-latest 1.7–2.7 s.** Small sample; the shape matches the local cluster (lookup dominates reads) with about 0.2–0.5 s of network on top.
 
 ## D5 — thresholds for "interactive"
 
-Proposed in SPIKES.md: cold read-latest p95 ≤ 5 s; warm p95 ≤ 2 s; cross-client visibility p95 ≤ 30 s. _Decide after paths 2–3._
+Proposed in SPIKES.md: cold read-latest p95 ≤ 5 s; warm p95 ≤ 2 s; cross-client visibility p95 ≤ 30 s.
+
+Where the data points so far (paths 1 and 4; paths 2–3 pending):
+- **Cold read-latest** (unknown index, one lookup): p95 4–5 s locally, 2.7–3.6 s through a gateway. Meets ≤ 5 s, barely. This is the "restore on a new device" number and it is Bee's lookup cost.
+- **Warm read-latest**: with the lookup, p95 2.5–4 s, misses ≤ 2 s. With a cached index, p95 20 ms locally and 0.4–0.5 s through a gateway, meets it with room. So the threshold is met only if the SDK keeps the index; write that into the design (Phase 1: per-slot index cache, lookup only when empty or on a miss).
+- **Cross-client visibility**: 2–5.6 s p95 where the reader does not cache stale answers. Meets ≤ 30 s. A reader behind a caching gateway can see a 60 s wall; document that gateways are not all equal and let the SDK bypass a stale answer by reading index+1 directly.
+- Failures: none in the settled runs on the Foundation gateways and bee-factory; the first minutes of a fresh bee-factory produced outliers of 10–225 s, and one gateway operator's caching broke visibility. Report them as such, not in the percentiles.
 
 ## Environment
 

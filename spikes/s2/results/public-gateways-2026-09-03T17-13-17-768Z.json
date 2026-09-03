@@ -1,0 +1,617 @@
+{
+  "env": {
+    "label": "public-gateways",
+    "writer": "https://api.gateway.ethswarm.org",
+    "reader": "https://gateway.fairdatasociety.org",
+    "batch": "0000000000000000000000000000000000000000000000000000000000000000",
+    "runs": 10,
+    "writeMode": "known index",
+    "writerVersion": "unknown (gateway)",
+    "readerVersion": "unknown (gateway)",
+    "date": "2026-09-03T17:13:17.768Z"
+  },
+  "rows": [
+    {
+      "measure": "1KB write (known index)",
+      "n": 10,
+      "failed": 0,
+      "p50": 463,
+      "p95": 2000,
+      "max": 2000
+    },
+    {
+      "measure": "1KB visibility",
+      "n": 3,
+      "failed": 7,
+      "p50": 59199,
+      "p95": 60526,
+      "max": 60526
+    },
+    {
+      "measure": "1KB read warm",
+      "n": 9,
+      "failed": 1,
+      "p50": 379,
+      "p95": 2552,
+      "max": 2552
+    },
+    {
+      "measure": "1KB read cold",
+      "n": 10,
+      "failed": 0,
+      "p50": 145,
+      "p95": 1770,
+      "max": 1770
+    },
+    {
+      "measure": "3.5KB write (known index)",
+      "n": 10,
+      "failed": 0,
+      "p50": 501,
+      "p95": 5461,
+      "max": 5461
+    },
+    {
+      "measure": "3.5KB visibility",
+      "n": 4,
+      "failed": 6,
+      "p50": 54913,
+      "p95": 60779,
+      "max": 60779
+    },
+    {
+      "measure": "3.5KB read warm",
+      "n": 10,
+      "failed": 0,
+      "p50": 139,
+      "p95": 1921,
+      "max": 1921
+    },
+    {
+      "measure": "3.5KB read cold",
+      "n": 10,
+      "failed": 0,
+      "p50": 129,
+      "p95": 593,
+      "max": 593
+    },
+    {
+      "measure": "64KB write (known index)",
+      "n": 10,
+      "failed": 0,
+      "p50": 1217,
+      "p95": 1294,
+      "max": 1294
+    },
+    {
+      "measure": "64KB visibility",
+      "n": 0,
+      "failed": 10,
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    {
+      "measure": "64KB read warm",
+      "n": 0,
+      "failed": 10,
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    {
+      "measure": "64KB read cold",
+      "n": 0,
+      "failed": 10,
+      "p50": null,
+      "p95": null,
+      "max": null
+    }
+  ],
+  "series": {
+    "1KB write (known index)": [
+      {
+        "ok": true,
+        "ms": 223
+      },
+      {
+        "ok": true,
+        "ms": 190
+      },
+      {
+        "ok": true,
+        "ms": 575
+      },
+      {
+        "ok": true,
+        "ms": 614
+      },
+      {
+        "ok": true,
+        "ms": 2000
+      },
+      {
+        "ok": true,
+        "ms": 435
+      },
+      {
+        "ok": true,
+        "ms": 464
+      },
+      {
+        "ok": true,
+        "ms": 463
+      },
+      {
+        "ok": true,
+        "ms": 444
+      },
+      {
+        "ok": true,
+        "ms": 476
+      }
+    ],
+    "1KB visibility": [
+      {
+        "ok": true,
+        "ms": 1185
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": true,
+        "ms": 60526
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": true,
+        "ms": 59199
+      }
+    ],
+    "1KB read warm": [
+      {
+        "ok": true,
+        "ms": 2552
+      },
+      {
+        "ok": true,
+        "ms": 379
+      },
+      {
+        "ok": true,
+        "ms": 833
+      },
+      {
+        "ok": false,
+        "error": "fetch failed"
+      },
+      {
+        "ok": true,
+        "ms": 553
+      },
+      {
+        "ok": true,
+        "ms": 129
+      },
+      {
+        "ok": true,
+        "ms": 132
+      },
+      {
+        "ok": true,
+        "ms": 130
+      },
+      {
+        "ok": true,
+        "ms": 493
+      },
+      {
+        "ok": true,
+        "ms": 130
+      }
+    ],
+    "1KB read cold": [
+      {
+        "ok": true,
+        "ms": 145
+      },
+      {
+        "ok": true,
+        "ms": 465
+      },
+      {
+        "ok": true,
+        "ms": 146
+      },
+      {
+        "ok": true,
+        "ms": 1770
+      },
+      {
+        "ok": true,
+        "ms": 132
+      },
+      {
+        "ok": true,
+        "ms": 125
+      },
+      {
+        "ok": true,
+        "ms": 127
+      },
+      {
+        "ok": true,
+        "ms": 438
+      },
+      {
+        "ok": true,
+        "ms": 129
+      },
+      {
+        "ok": true,
+        "ms": 147
+      }
+    ],
+    "3.5KB write (known index)": [
+      {
+        "ok": true,
+        "ms": 454
+      },
+      {
+        "ok": true,
+        "ms": 156
+      },
+      {
+        "ok": true,
+        "ms": 5461
+      },
+      {
+        "ok": true,
+        "ms": 526
+      },
+      {
+        "ok": true,
+        "ms": 501
+      },
+      {
+        "ok": true,
+        "ms": 513
+      },
+      {
+        "ok": true,
+        "ms": 476
+      },
+      {
+        "ok": true,
+        "ms": 520
+      },
+      {
+        "ok": true,
+        "ms": 437
+      },
+      {
+        "ok": true,
+        "ms": 508
+      }
+    ],
+    "3.5KB visibility": [
+      {
+        "ok": true,
+        "ms": 894
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": true,
+        "ms": 54913
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": true,
+        "ms": 59751
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": true,
+        "ms": 60779
+      }
+    ],
+    "3.5KB read warm": [
+      {
+        "ok": true,
+        "ms": 1921
+      },
+      {
+        "ok": true,
+        "ms": 131
+      },
+      {
+        "ok": true,
+        "ms": 130
+      },
+      {
+        "ok": true,
+        "ms": 431
+      },
+      {
+        "ok": true,
+        "ms": 129
+      },
+      {
+        "ok": true,
+        "ms": 453
+      },
+      {
+        "ok": true,
+        "ms": 404
+      },
+      {
+        "ok": true,
+        "ms": 139
+      },
+      {
+        "ok": true,
+        "ms": 443
+      },
+      {
+        "ok": true,
+        "ms": 136
+      }
+    ],
+    "3.5KB read cold": [
+      {
+        "ok": true,
+        "ms": 129
+      },
+      {
+        "ok": true,
+        "ms": 503
+      },
+      {
+        "ok": true,
+        "ms": 129
+      },
+      {
+        "ok": true,
+        "ms": 129
+      },
+      {
+        "ok": true,
+        "ms": 593
+      },
+      {
+        "ok": true,
+        "ms": 451
+      },
+      {
+        "ok": true,
+        "ms": 128
+      },
+      {
+        "ok": true,
+        "ms": 485
+      },
+      {
+        "ok": true,
+        "ms": 137
+      },
+      {
+        "ok": true,
+        "ms": 124
+      }
+    ],
+    "64KB write (known index)": [
+      {
+        "ok": true,
+        "ms": 1221
+      },
+      {
+        "ok": true,
+        "ms": 1294
+      },
+      {
+        "ok": true,
+        "ms": 1293
+      },
+      {
+        "ok": true,
+        "ms": 1147
+      },
+      {
+        "ok": true,
+        "ms": 1234
+      },
+      {
+        "ok": true,
+        "ms": 1109
+      },
+      {
+        "ok": true,
+        "ms": 1228
+      },
+      {
+        "ok": true,
+        "ms": 1181
+      },
+      {
+        "ok": true,
+        "ms": 1217
+      },
+      {
+        "ok": true,
+        "ms": 1174
+      }
+    ],
+    "64KB visibility": [
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      },
+      {
+        "ok": false,
+        "error": "timeout after 120000 ms"
+      }
+    ],
+    "64KB read warm": [
+      {
+        "ok": false,
+        "error": "bad point: is not on curve, sqrt error: Cannot find square root"
+      },
+      {
+        "ok": false,
+        "error": "bad point: is not on curve, sqrt error: Cannot find square root"
+      },
+      {
+        "ok": false,
+        "error": "bad point: is not on curve, sqrt error: Cannot find square root"
+      },
+      {
+        "ok": false,
+        "error": "bad point: is not on curve, sqrt error: Cannot find square root"
+      },
+      {
+        "ok": false,
+        "error": "bad point: is not on curve, sqrt error: Cannot find square root"
+      },
+      {
+        "ok": false,
+        "error": "bad point: is not on curve, sqrt error: Cannot find square root"
+      },
+      {
+        "ok": false,
+        "error": "bad point: is not on curve, sqrt error: Cannot find square root"
+      },
+      {
+        "ok": false,
+        "error": "bad point: is not on curve, sqrt error: Cannot find square root"
+      },
+      {
+        "ok": false,
+        "error": "bad point: is not on curve, sqrt error: Cannot find square root"
+      },
+      {
+        "ok": false,
+        "error": "bad point: is not on curve, sqrt error: Cannot find square root"
+      }
+    ],
+    "64KB read cold": [
+      {
+        "ok": false,
+        "error": "bad point: is not on curve, sqrt error: Cannot find square root"
+      },
+      {
+        "ok": false,
+        "error": "bad point: is not on curve, sqrt error: Cannot find square root"
+      },
+      {
+        "ok": false,
+        "error": "bad point: is not on curve, sqrt error: Cannot find square root"
+      },
+      {
+        "ok": false,
+        "error": "bad point: is not on curve, sqrt error: Cannot find square root"
+      },
+      {
+        "ok": false,
+        "error": "bad point: is not on curve, sqrt error: Cannot find square root"
+      },
+      {
+        "ok": false,
+        "error": "bad point: is not on curve, sqrt error: Cannot find square root"
+      },
+      {
+        "ok": false,
+        "error": "bad point: is not on curve, sqrt error: Cannot find square root"
+      },
+      {
+        "ok": false,
+        "error": "bad point: is not on curve, sqrt error: Cannot find square root"
+      },
+      {
+        "ok": false,
+        "error": "bad point: is not on curve, sqrt error: Cannot find square root"
+      },
+      {
+        "ok": false,
+        "error": "bad point: is not on curve, sqrt error: Cannot find square root"
+      }
+    ]
+  }
+}
