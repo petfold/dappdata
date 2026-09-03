@@ -1,6 +1,6 @@
 # S3 — Funding: results
 
-Status: **mode B demonstrated on Sepolia** (2026-09-03): user-owned batch paid by another key, client-side stamps accepted by a batch-less node, topUp permissionless, dilute owner-only. Left: mutable-overflow test, funding survey, browser write path.
+Status: **done except mode A autobuy** (2026-09-04). Mode B demonstrated on Sepolia: user-owned batch paid by another key, client-side stamps accepted by a batch-less node from Node and from a browser page, topUp permissionless, dilute owner-only. Slot reuse silently replaces the earlier chunk on immutable and mutable batches alike. Funding survey, weeb-3 status, gateway-proxy state, dependency table recorded.
 
 ## What is here
 
@@ -51,7 +51,7 @@ Script: `src/modeb.mjs` (log of the first run: `results/modeb-2026-09-03-run1.lo
 | 3. `topUp` by a non-owner | **works, no owner permission needed** | tx `0xb287c45c…f6e`, remaining balance per chunk 343 781 937 → 689 585 796 |
 | 4. `increaseDepth` (dilute) by a non-owner | **reverts** (`NotBatchOwner`) | static call |
 | 4b. `increaseDepth` by the owner on an *immutable* batch | **does not revert on chain.** The current `PostageStamp.increaseDepth` checks owner, depth, expiry and balance only; `immutableFlag` is stored and reported, never enforced there. Immutability is Bee behaviour (how a node treats a full bucket), not a contract rule. | static call as owner; `src/PostageStamp.sol` lines 377–396 |
-| 5. mutable batch filled past capacity | _not run yet_ | |
+| 5. stamp slot reused (sharpened from "fill a mutable batch") | **the earlier chunk on that slot disappears from the network, on the immutable batch just as on the mutable one**; a control with distinct slots keeps both | see "Step 5" below |
 | 7. multichain funding survey | _not run yet_ | |
 
 **Findings.**
@@ -66,6 +66,53 @@ Script: `src/modeb.mjs` (log of the first run: `results/modeb-2026-09-03-run1.lo
 
 gateway-proxy 0.16.0 in front of the Sepolia node stamped and forwarded feed writes for S2 path 3 (see `spikes/s2/RESULTS.md`). Autobuy mode and the bee-factory run are not done; given D12 verifies positive, mode A is the fallback, not the default, and its remaining steps are low priority.
 
-## Still to do in S3
+## Step 5 — what a reused stamp slot does (2026-09-04)
 
-Step 5 (mutable batch overflow, for D4 wording), step 7 (multichain funding survey), the browser write path checks (weeb-3 status, CORS from a browser page), and the dependency status table.
+SPIKES.md asked to fill a mutable batch past capacity and watch the feed break. The cheaper and more relevant version: reuse one stamp **slot** (bucket + index) for a second chunk, which is what happens when a batch is over-filled and also what a client does after losing its `Stamper` bucket state. Scripts `src/overflow.mjs` (A: immutable batch `c044860d…`, B: mutable batch `0x52262daf…2e79`, tx `0x884bb593…107f`) and `src/overflow-control.mjs`. Each test picks two SOCs whose addresses share the top 16 bits (same bucket; 70–90 k tries), stamps them with the raw `stamp()` at an explicit slot, uploads through the ultra-light node's `/soc` route, then asks the other node for both chunks. Logs in `results/overflow-*.log`.
+
+| Case | Uploads | Chunk 1 retrievable afterwards | Chunk 2 |
+|---|---|---|---|
+| A. immutable batch, slot 0 then slot 0 again | both accepted (201) | **no**, at +15 s and again minutes later, from either node | yes |
+| B. mutable batch, slot 0 then slot 0 again | both accepted | **no**, at +15 s and +75 s | yes |
+| Control: immutable batch, slot 0 then slot 1, same bucket | both accepted | yes, at +20 s and +80 s | yes |
+
+Reading it:
+- **A slot collision replaces the earlier chunk on the network, and the immutable flag did not prevent it** on this Bee 2.8.2 testnet. The uploading node answers 201 either way; nothing tells the client. Whatever "immutable" protects against in Bee's reserve, it is not this, at least as seen from two light nodes pushing into the Swarm testnet. Both our nodes are light (no reserve of their own), so the storers were third-party testnet full nodes.
+- **For the SDK this is the single most important operational rule from S3: never lose or reuse stamper state.** Persist the `Stamper` bucket state (`getState()`) with the slot; on a fresh device, restore it from the feed before writing, or start from a slot range the old device cannot have used. A user who signs in on a new device with a blank Stamper would overwrite their own earliest chunks without any error.
+- D4 (batch type) still favours immutable, because the contract-level guarantees that do hold (nobody but the owner can `increaseDepth`, and the owner is our derived key) are the same for both, and the node-side semantics on a full bucket are at least not worse. But the reason to prefer immutable is no longer "overwrites cannot happen"; it is "the SDK refuses to write past capacity and asks for a new batch" as an SDK rule, with the flag as a marker.
+- Caveat: n = 1 per case, one uploader, one testnet. Repeat on bee-factory with full nodes we control, and on mainnet, before treating the immutable behaviour as Bee's contract rather than this network's.
+
+## Step 7 — funding paths a browser dapp could hand a user to (survey, 2026-09-04)
+
+What exists, from ethswarm.org/get-bzz and the docs. None integrated; D3 says plug in, do not build.
+
+| Path | What it gives | Status / notes |
+|---|---|---|
+| Jumper (LI.FI) | any chain, any token → xBZZ on Gnosis in one flow; also delivers xDAI | Linked from get-bzz; the only listed route that starts from arbitrary chains. Has an embeddable widget and an SDK; the natural first integration for "fund at sign-in". |
+| CoW Swap on Gnosis | xDAI/WETH → xBZZ | Needs the user already on Gnosis with xDAI. |
+| Uniswap on Ethereum | ETH → BZZ (mainnet BZZ), then Omnibridge to Gnosis | Two steps, two chains; poor UX for onboarding. |
+| Omnibridge | BZZ ↔ xBZZ, DAI ↔ xDAI | Bridge only. |
+| Centralized exchanges | BZZ, sometimes xBZZ directly | Listed via CoinMarketCap / CoinGecko; a withdrawal to the user's wallet on Gnosis is the only requirement. |
+| Fiat on-ramp | none named for BZZ on the Swarm site | A dapp would use a generic on-ramp to xDAI on Gnosis, then CoW Swap; two steps. |
+| Sponsor pays (D3(d)) | the dapp operator or anyone calls `createBatch(owner = user)` / `topUp` | Demonstrated above. Needs no user funds at all; the onboarding ramp. |
+
+Recommendation for D3: the demo starts with sponsor-pays; the "bring your own funds" path offers Jumper first, since it is the one that starts from wherever the user's funds are and ends with both xBZZ and xDAI.
+
+## Browser write path (D13), 2026-09-04
+
+- **weeb-3** (github.com/lat-murmeldjur/weeb-3; the `ethersphere/weeb-3` URL is gone): a Rust Swarm client compiled to WebAssembly. Its README now claims "networking, retrieval, **upload**, persistence, service-worker integration" in the browser, including "optionally as a feed update", plus "postage batch acquisition, chequebook deployment, cheque signer persistence, and chequebook deposits through the browser wallet". At handoff it was retrieval-only, so this is new. 348 commits, one open issue; no release tag seen. Not verified here. If it holds, a dapp could write to Swarm with no HTTP Bee endpoint at all; the SDK's transport interface should allow a weeb-3 backend later (Phase 4/5), which fits D8's "keep the seed and transport pluggable".
+- Other in-browser or attached nodes: not surveyed beyond weeb-3 tonight.
+- **CORS from a browser page: works.** A page on `http://127.0.0.1:8731` (headless Chromium, `src/cors-prepare.mjs` built the request) did `fetch(POST /soc/{owner}/{id}?sig=…)` with the `swarm-postage-stamp` header against the node on `:1653`: status 201, reference `bfc32e72…5f6a` equal to the SOC address. The node needs `cors-allowed-origins` set (ours: `'*'`); its preflight answer allows `POST`, echoes the origin, and lists `Swarm-Postage-Stamp` among the allowed headers. Bee's default config has no CORS origins, so a dapp operator must set that one line, or the dapp must use a gateway that does.
+- **Minimum a dapp operator must run today for writes:** nothing of their own if the user's node or any public Bee HTTP endpoint with `cors-allowed-origins` set accepts pre-stamped uploads (mode B), or one gateway-proxy plus a Bee node for mode A. What shrinks if weeb-3's write path holds: the HTTP endpoint disappears; funding stays.
+
+## Dependency status (for the gate)
+
+| Dependency | Version seen | State | Notes |
+|---|---|---|---|
+| Bee | 2.8.2 | current | `/soc` accepts pre-stamped SOCs; `/chunks` does not (address mismatch). Feed lookup 2–5 s (S2). |
+| bee-js | 13.0.0 | current, pinned (D10) | Envelope upload works via `soc.makeWriter().upload` at runtime; the TypeScript type omits it. Feed writer takes a batch id only. |
+| core-sdk | 0.1.1 | current, pinned (D10) | `Stamper`, `makeContentAddressedChunk`, `toSingleOwnerChunk` sufficient for client-side stamping; signing matches Bee. |
+| gateway-proxy | 0.16.0 (2026-01) | works, beta, README pins Bee 1.7 | mode A fallback; no per-user auth. |
+| bee-factory | 1.1.2 (2026-08) | works | queen on `:1633`, workers `:1635…1641`. |
+| weeb-3 | git main | claims browser uploads | unverified; watch for D13/Phase 4. |
+| fdp-storage (prior art) | not examined tonight | | |
