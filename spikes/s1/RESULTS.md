@@ -1,6 +1,6 @@
 # S1 — Key derivation: results
 
-Status: **in progress** (started 2026-09-03). Node-side checks done; real-wallet matrix pending.
+Status: **in progress** (started 2026-09-03). Node-side checks and D8 reading done; real-wallet matrix, portability, and smart-account tests pending (need Peter at a browser with wallets).
 
 ## What is here
 
@@ -47,9 +47,19 @@ Result: _pending_
 
 Safe (ERC-1271): _pending_. Passkey wallet: _pending_. Recommendation for D2: _pending_
 
-## D8 — swarm-id
+## D8 — swarm-id (snaha/swarm-id), read 2026-09-03
 
-_pending_ (notes in progress)
+What it is. A browser identity layer with a **trusted domain** (`swarm-id.snaha.net`) that holds a master key in first-party storage and hands each dapp an app-specific secret through an OAuth-style popup plus iframe. The master key comes from a signed challenge, via **Passkey/WebAuthn or SIWE**. App secret = HMAC-SHA256(masterKey, appOrigin). Below that: `derivationKey` → `swarmEncryptionKey` → backup feed signer and AES-GCM key; and a `postageSignerKey` that signs stamps **client-side** (`UtilizationAwareStamper`) against a **user-owned, mutable** batch shared across devices with a partition-lease protocol built from SOCs and epoch feeds. It also has a "subsidised gateway" fallback when the user has no batch. Docs are thorough and implementation-level (multi-device-postage-batches, Postage-Batch-Partitioning).
+
+Overlap with dappdata: the derived-key idea, per-origin isolation, client-side stamping, user-owned batch, encrypted feeds. Nearly everything in our Phase 1 and 2.
+
+Differences that matter:
+- **Identity root.** swarm-id's identity is a swarm-id *account* unlocked by passkey or wallet; the key lives in a third party's origin. dappdata's identity is the wallet address itself, with no trusted domain, no popup, no operated identity service. That is the canvas's premise (the user already proved this identity with SIWE) and it is the reason a dapp can adopt dappdata with one package and no third-party origin.
+- **Passkeys.** Their passkey path is exactly what our D2 lacks for non-EOA users. Worth pointing at when D2 closes "refuse in v1".
+- **Batch model.** They chose mutable batches plus a lock protocol to share one batch across devices. We plan immutable batches and a simpler write discipline (D4, D6). Their docs are the best available evidence of what the mutable route costs in complexity.
+- **Client-side stamping.** They do it in production code with a derived signer key, which is strong evidence for D12 before S3 runs.
+
+Recommendation for D8: **(b) independent and SIWE-native, align where cheap.** Concretely: keep per-origin isolation as the isolation unit (same as theirs); keep the derivation pure-function and documented so an identity layer like swarm-id could later supply the seed (an `EntropySource` interface instead of hard-wiring `eth_signTypedData_v4`); reuse or copy their stamper and lease code if D6/D12 need multi-device stamping. Do not build on swarm-id now: it would add a hosted trusted domain and a second identity to a project whose point is to need neither. Revisit in Phase 5 if swarm-id ships and dapps already carry it.
 
 ## Environment
 

@@ -60,8 +60,8 @@ Add new entries at the end. Do not renumber.
 **Status:** open — closes in S1
 **Context.** swarm-id is a work-in-progress browser master identity for Swarm dapps: it derives app-specific secrets, signs feed updates, and isolates apps from each other. That overlaps dappdata's derivation layer. IDEA-176 (Swarm ID core storage) is the Foundation-side identity substrate.
 **Options.** (a) Build dappdata's derivation on swarm-id; (b) stay independent and SIWE-native, but align topic and isolation conventions so state is portable later; (c) independent, no alignment.
-**Leaning.** (b). SIWE is the identity users already have; swarm-id's model is worth matching where cheap.
-**Consequences.** Decides whether derivation is our code or a dependency.
+**Leaning.** (b), reinforced by the S1 reading (spikes/s1/RESULTS.md, D8 section). swarm-id needs a hosted trusted domain and its own account; dappdata's point is to need neither. Align on per-origin isolation, expose the seed source as an interface so an identity layer could plug in later, and borrow their client-side stamper and lease designs where D6/D12 need them. Their passkey path is the answer to D2's excluded users if that ever moves in scope.
+**Consequences.** Derivation is our code. Closes when Peter confirms.
 
 ## D9 — Encryption scheme
 **Status:** open — closes in Phase 1

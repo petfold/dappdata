@@ -68,4 +68,8 @@ Create folders when a phase needs them, not before.
 
 Phase 0 started 2026-09-03. D10 closed (bee-js 13.0.0 + core-sdk 0.1.1). D3 direction set: user owns the batch, anyone pays (see D12 for client-side stamping, D13 for browser-first, D14 for the integration surface).
 
-**Next action:** open `docs/SPIKES.md`, run S1 (key derivation). S2 needs a Sepolia light node running for a day; start it early.
+**S1 in progress** (`spikes/s1/`): derivation code and Node determinism check pass; browser wallet harness ready (`pnpm serve` in `spikes/s1`, open http://127.0.0.1:8731). Findings F1 (no chainId in the EIP-712 domain) and F2 (fallback path derives a different key) await D1. D8 reading done, leaning (b). Real-wallet matrix needs Peter.
+
+**Sepolia node for S2/S3:** Bee 2.8.2 (Swarm Desktop binary), `/home/test/bee-sepolia/`, API `127.0.0.1:1643`. Address `0x13cB9947C508cf52a233a1E97d80Dd2485589481` needs sETH then sBZZ; it exits until funded; restart with `/home/test/bee-sepolia/start.sh`. Swarm Desktop's own mainnet node (`:1633`) is off limits.
+
+**Next action:** Peter funds the node and runs the S1 wallet matrix; Claude fills `RESULTS.md`, then D1/D2/D8 close and S2 starts.
