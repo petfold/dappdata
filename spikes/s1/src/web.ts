@@ -54,4 +54,9 @@ $('typed20').onclick = () => runDeterminism('typed', 20)
 $('text1').onclick = () => runDeterminism('text', 1)
 $('text20').onclick = () => runDeterminism('text', 20)
 $('copy').onclick = () => navigator.clipboard.writeText(JSON.stringify(results, null, 2))
+$('save').onclick = async () => {
+  const note = (document.getElementById('note') as HTMLInputElement).value
+  const r = await fetch('/results', { method: 'POST', body: JSON.stringify({ note, savedAt: new Date().toISOString(), results }, null, 2) })
+  log(`saved to spikes/s1/results/${(await r.json()).saved}`)
+}
 $('preview').textContent = typedDataV4Json('0x0000000000000000000000000000000000000000', location.origin)
