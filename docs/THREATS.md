@@ -39,7 +39,7 @@ An attacker copies an envelope from one topic's feed into another.
 
 ### T7 — Proxy abuse (funding mode A)
 An open stamping proxy lets anyone drain the dapp's batch.
-**Mitigation.** The proxy accepts writes only with a valid SIWE session token issued by the dapp; per-account rate limits; batch balance alerts. This lives in `infra/proxy/` config, not in advice. **Status:** open until Phase 2.
+**Mitigation.** The proxy accepts writes only with a valid SIWE session token issued by the dapp; per-account rate limits; batch balance alerts. This lives in `infra/proxy/` config, not in advice. **Status:** moot if D3's draft closes as written (no stamping proxy in the SDK); kept for the record.
 
 ### T8 — Batch expiry (funding mode B)
 The user's batch runs out; chunks are evicted; state is gone.
@@ -48,7 +48,7 @@ The user's batch runs out; chunks are evicted; state is gone.
 
 ### T9 — Mutable batch corrupts feeds
 A dapp configures a mutable batch; when it fills, old feed chunks are overwritten.
-**Mitigation.** The SDK refuses mutable batches (D4) and quotes S3's recorded failure. **Status:** open until S3.
+**Mitigation.** The SDK refuses mutable batches (D4) and quotes S3's recorded failure. **Status:** S3 done. Per the D4 draft the immutable flag is a marker, not a guarantee, so the protection that matters is the stamper-state rule in T12.
 
 ### T10 — XSS in the dapp steals keys from memory
 **Mitigation.** `encKey` is a non-extractable WebCrypto key. `feedKey` must be usable by a JS secp256k1 signer, so it is a plain value; keep its lifetime to the session, never persist it, never log it. A future option is to move signing into a Worker with no shared scope. **Status:** accepted for v1 with the above; revisit in Phase 4.
@@ -56,6 +56,26 @@ A dapp configures a mutable batch; when it fills, old feed chunks are overwritte
 ### T11 — Cross-dapp enumeration
 If D7 chooses a mapping feed, a third party who links the main address to the mapping key can list every dapp the user has state in.
 **Status.** open; decided with D7. If we publish a mapping, it must itself be encrypted or opt-in.
+
+### T12 — Lost or stale stamper state overwrites the user's own data
+A device with a blank or old `Stamper` bucket state reuses slots; the network replaces the earlier chunk and the node answers 201 (S3). Immutable batches do not prevent it (D4).
+**Mitigation.** D19: bucket state checkpointed to a reserved slot, restored before the first write on a new device, then advanced by a safety margin; the SDK stops at capacity rather than reuse. **Status:** open until D19 (Phase 2). Promised in D4's consequences on 2026-09-04; written here 2026-09-05.
+
+### T13 — Signature encoding splits a user into two folders
+The same account signs the same message; one wallet reports `v` as 27, another as 0, or one emits high-`s`; `keccak256(sig)` differs and the user lands in an empty folder.
+**Mitigation.** D15: seed from `r ‖ s` with low-`s`, plus public-key recovery as a check. **Status:** open until D15.
+
+### T14 — A declared app identity widens the phishing surface
+With app binding (D16) a phishing site can put the real dapp's `app` value in its own request. The wallet still shows the requesting site, but users of gateway-hosted dapps are used to seeing a gateway hostname there, so the signal is weaker than for a conventional dapp.
+**Mitigation.** Origin binding stays the default. Dapps that choose app binding say so in their UX; a Phase 4 option verifies the ENS contenthash against the loaded bundle. **Status:** open; decided with D16.
+
+### T15 — Shared origin on a Swarm gateway
+On a path-based gateway every app shares one origin. Keys stay in memory and are safe; anything the SDK caches locally (feed index cache, stamper bucket state) can be read or altered by another app on the same gateway. Altered stamper state could point the SDK at used slots (T12); a poisoned index cache yields stale reads.
+**Mitigation.** Local caches are hints: the slot checkpoint wins over the local stamper cache and buckets never move backwards; a stale index is caught by read-latest on a miss. The Phase 3 integration guide recommends subdomain gateways to Swarm-hosted dapps. **Status:** open until D19.
+
+### T16 — A sub-key leaks
+A dapp holds a D17 sub-key in memory and loses it to XSS or a bad dependency.
+**Accepted, bounded by design.** The attacker gets what that library wrote under that key; the folder keys derive through other `info` strings and cannot be reached from a sub-key. Same lifetime rules as `feedKey` (T10). **Status:** accepted once D17 closes.
 
 ## Not in scope
 

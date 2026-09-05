@@ -54,13 +54,13 @@ See *Revision notes* at the end for what changed since the chat draft.
 **Goal.** The smallest library that turns a wallet signature into readable, writable, encrypted state on Swarm.
 
 **Work.**
-- `derive`: derivation signature → seed → feed signing key + encryption key (per D1).
-- `envelope`: encrypt and frame a state value; inline when it fits a feed payload, otherwise upload the blob with Swarm encryption and put the reference in the feed.
-- `slot`: `get`, `set`, and `watch` on one named piece of state, over a sequential feed owned by the derived key.
-- One Bee endpoint supplied by the dapp; single writer; no funding logic (writes use a stamp the caller supplies).
+- `derive`: entropy source → secret → seed bound to the app identity → feed signing key, encryption key, sub-keys (D1, D15, D16, D17, D21). Sources in M0: wallet signature and mnemonic (D21).
+- `envelope`: encrypt and frame a state value; inline when it fits a feed payload, otherwise upload the blob with Swarm encryption and put the reference in the feed. The frame carries a schema byte (D22); frame and crypto are a pure module reusable with any key (D20).
+- `slot`: `get`, `set`, and `watch` on one named piece of state, over a sequential feed owned by the derived key. `set` takes `expectIndex` and a `merge` callback (D6); `get` returns the schema and runs `migrate` (D22).
+- A transport supplied by the dapp: the default HTTP transport or the caller's own (D18); single writer; no funding logic (writes use a stamp the caller supplies).
 - Unit tests with a mocked Bee; integration tests against bee-factory.
 
-**Out of scope for M0.** Funding flows, multi-device conflict handling, cross-dapp discovery, React bindings.
+**Out of scope for M0.** Funding flows, merge strategies beyond expect-index (D6), cross-dapp discovery, React bindings.
 
 **Deliverables.** `packages/dappdata` with the public API in `ARCHITECTURE.md` implemented; CI running unit and bee-factory tests; a `README` that shows the integration in under 15 lines.
 
@@ -68,6 +68,7 @@ See *Revision notes* at the end for what changed since the chat draft.
 - C1 is testable: the README example runs against bee-factory.
 - C5 holds on the wire: a test reads the raw feed chunk and finds ciphertext only.
 - D9 (encryption scheme) closed.
+- D15, D16, D17, D18, D21 (mnemonic source), D22 closed. They fix the derivation spec and the frame, which cannot change after the first real user.
 
 **Size.** The plumbing exists in bee-js; expect the effort to go into the derivation edge cases and the envelope format.
 
@@ -81,12 +82,15 @@ See *Revision notes* at the end for what changed since the chat draft.
 - **Mode A, proxy.** A `funding.proxy(url)` adapter that routes writes through a gateway-proxy deployment; `infra/proxy/` holds a working config against bee-factory and against a Sepolia node.
 - **Mode B, sponsored batch.** A `funding.batch()` adapter: the user owns an immutable batch; helpers for purchase, `topUp` by a sponsor address, and TTL monitoring with a warning threshold.
 - Both adapters behind one `Funding` interface so the dapp changes one line to switch.
+- **Stamper as a service (D19).** `stamper(batchId)` for other libraries; bucket state checkpointed to a reserved slot, restored and advanced on a new device; a test that a second device never reuses a slot.
+- **Granularity (D23).** `fund()` sizes a batch from a declared write budget; `health()` reports days left; `docs/FUNDING.md` says plainly that each app brings its own batch.
 
 **Deliverables.** Both modes runnable from a script, on bee-factory and on Sepolia. A short `docs/FUNDING.md` for dapp developers: which mode, when, and what it costs.
 
 **Gate.**
 - C4: both modes demonstrated end to end on Sepolia.
 - Proxy abuse controls from `THREATS.md` (T7) are in the proxy config, not left as advice.
+- D19, D23 closed; T12 and T15 have a status.
 
 **Why before the demo.** The demo is only convincing if its writes are funded like a real deployment's, not hand-stamped from a dev batch.
 
@@ -104,7 +108,7 @@ See *Revision notes* at the end for what changed since the chat draft.
 - First honest test of the derivation UX: the extra signature prompt at sign-in and how the dapp explains it.
 - Optional: `packages/dappdata-react` with `useSlot` if the demo makes the hooks obvious.
 
-**Deliverables.** Deployed demo (Swarm-hosted if practical); a `docs/UX.md` note on the signature prompt with the wording we settled on.
+**Deliverables.** Deployed demo (Swarm-hosted if practical); a `docs/UX.md` note on the signature prompt with the wording we settled on; `docs/SWARM-HOSTED.md`, an integration guide for dapps served from a Swarm gateway (hash routing, gateway origins, no response headers, app binding per D16, subdomain gateways per T15).
 
 **Gate.**
 - C2 passes with MetaMask and at least one other wallet from the D2 set.
@@ -117,7 +121,8 @@ See *Revision notes* at the end for what changed since the chat draft.
 **Goal.** Make the SDK safe to hand to someone we do not control.
 
 **Work.**
-- **Multi-device writes (D6).** Sequence discipline first: read the latest index before writing, detect a lost race, retry or surface a conflict. Then decide whether per-device feeds with a merge step, or a CRDT layer reusing the Yjs-over-feeds work in swarm-collaborative-docs, is worth adding. Ship the simple thing; keep the CRDT layer separable.
+- **Multi-device writes (D6).** M0 ships expect-index and `merge`; Phase 4 decides whether per-device feeds with a merge step are needed. The CRDT layer is swarm-collaborative-docs with the D20 envelope and a D17 sub-key, not code here.
+- **Crypto for other libraries (D20).** Publish `dappdata/envelope`; land the encryption hook in swarm-collaborative-docs (Solar Punk owns it) so a dapp encrypts shared documents in the same format; optional ENS contenthash check for app binding (T14).
 - **Namespace and discoverability (D7).** Settle the topic convention and whether a second dapp, or the user on another dapp, can find state written under a derived key from the main address alone. Options: per-dapp isolation as a privacy feature; a mapping feed the user publishes; a registry convention. This closes before Phase 5 because changing it later breaks every adopter.
 - **Security review.** Adversarial pass over `THREATS.md`: phishing surface of the derivation message, envelope and nonce handling, key lifetime in memory, proxy abuse. Fix or document each item.
 - **Key loss.** No recovery is acceptable; the SDK must say so in its docs and give the dapp a hook to warn users. Add a versioned derivation message so a future change gets a migration path instead of orphaning state.
@@ -140,6 +145,7 @@ See *Revision notes* at the end for what changed since the chat draft.
 **Work.**
 - Docs site or README of record; examples; announce in Swarm channels.
 - Recruit one external dapp and support the integration.
+- **Candidate first adopter: swarmtyp** (Solar Punk, `../swarmtyp`, a collaborative Typst editor served from Swarm). Its plan already puts identity and the per-user project list on dappdata in its Phase 3, about six to eight weeks after 2026-09-05. It would exercise what the demo cannot: D16 (an app with no origin of its own), D17 (a key for swarm-collaborative-docs), D19 (a snapshot every few seconds), D6 (two devices on one list), T15 (a shared gateway origin).
 - Tracked separately, each its own issue: recordstore as the structured or transactional layer (IDEA-166 convergence); reuse of IDEA-176's sponsored-batch mechanics if that idea advances; the smart-account fallback from S1.
 
 **Gate.** One external dapp in production or public beta with dappdata state.
@@ -172,3 +178,4 @@ Phase 0: days per spike, in parallel where wallets allow. Phases 1–3 together 
 - Phase 2 gains a single `Funding` interface and proxy abuse controls; Phase 4 gains a versioned derivation message for migrations.
 - Added a testing and environments section, and the rule that CI never touches a real network.
 - Added the Jira write-back at each gate.
+- 2026-09-05, review from the swarmtyp side: D15–D23 added as open items; THREATS T12–T16; Phase 1 and 2 gates extended; Phase 3 gains the Swarm-hosted integration guide; Phase 5 names swarmtyp as first adopter candidate. The review note `issues.txt` is folded into D15 and D23 and removed.

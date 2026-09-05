@@ -59,7 +59,7 @@ Add new entries at the end. Do not renumber.
 ## D6 — Multi-device write strategy
 **Status:** open — closes in Phase 4
 **Options.** (a) Read-before-write with retry and a conflict callback; (b) one feed per device plus a merge step on read; (c) a CRDT layer reusing swarm-collaborative-docs (Yjs over feeds).
-**Leaning.** (a) shipped; (c) as an optional package if a real use case needs it.
+**Leaning.** (a) in M0: `set(value, { expectIndex })` fails with a typed conflict error when the feed has moved, and a `merge(local, remote)` callback lets the dapp resolve and retry. (c) is not built here: it is swarm-collaborative-docs with the D20 envelope and a D17 sub-key. Two devices editing one small list (swarmtyp's project list, PLAN Phase 5) is the first real test.
 **Consequences.** (b) changes the storage layout; decide before any adopter.
 
 ## D7 — Topic namespace and cross-dapp discoverability
@@ -121,3 +121,66 @@ Feeds and SOCs work as documented: sequential feeds via `makeWriter(topic, signe
 **Options.** (a) Explicit SDK: the dapp calls `slot.get/set/watch`, and chooses what state to keep. (b) Storage adapters: dappdata implements interfaces dapps already use — a `Storage`-like key-value API, a state-library persistence plugin (zustand/redux-persist/pinia), a Yjs provider, a wagmi/Web3Modal hook — so an existing dapp swaps one line. (c) Transparent shim: intercept `localStorage`/IndexedDB for a namespace and mirror it to Swarm; the dapp does not change at all.
 **Direction.** (a) is the core and is what Phase 1 builds; it is content-agnostic (a slot holds bytes or JSON, the SDK never inspects it). (b) is how most dapps will adopt; Phase 3 ships one adapter, chosen by the demo: a plain key-value / zustand-style persistence adapter over a `preferences` slot (the "DEX settings that vanish on a new laptop" case). (c) is out of scope unless a real adopter asks: the shim's problem is not data structure but semantics — synchronous API over an async store, size limits, and no way to tell user state from cache.
 **Consequences.** Adapters are separate small packages on top of the SDK; the core API must stay small enough that an adapter is under a hundred lines. Phase 3 demo scope updated in PLAN.
+
+## D15 — Derivation input: hash `r‖s` with low-`s`, not the 65-byte signature
+**Status:** open — closes before Phase 1 code. Changes every key, so it cannot move after the first real user.
+**Context.** D1 and `spikes/s1/src/derive.ts` take `seed = keccak256(sig)` over the full 65-byte signature. The recovery byte `v` is an encoding choice, not part of the signature: wallets and libraries report 27/28 or 0/1 (Ledger through MetaMask has returned both over time), and a wallet that emits a high-`s` signature would differ again. Same account, same message, two seeds, two folders. Raised in the review thread of 2026-09-04 (the note that was `issues.txt`); S1 did not see it because it compared each wallet with itself and two wallets that happen to agree on `v`.
+**Options.** (a) Keep `keccak256(sig)`. (b) `keccak256(r ‖ s)` with `s` normalised to the low half of the curve order. (c) (b) plus recovering the public key and checking it matches `account`.
+**Leaning.** (c). The check costs one recovery and turns a wrong-account or malformed signature into a typed error instead of a silent empty folder.
+**Consequences.** `ARCHITECTURE.md` derivation block updated in this commit, marked *(D15)*. S1's determinism result stands: `r` and `s` are what RFC 6979 fixes. The spike's `derive.ts` is superseded on this line and is not updated (throwaway code). THREATS T13.
+
+## D16 — What the key binds to: browser origin or a declared app identity
+**Status:** open — closes before Phase 1 code
+**Context.** The D1 message binds `origin = window.location.origin`. A dapp served from a Swarm gateway has no origin of its own: `https://gateway.example/bzz/<ref>/` is shared with every other app on that gateway and differs on every gateway and on a local node. The same user gets a different folder per access path, and any app on the gateway can request the same signature. Raised by swarmtyp, the first adopter candidate (PLAN, Phase 5).
+**Options.** (a) Keep `origin` as the only binding; Swarm-hosted dapps live with per-gateway folders or an alias tool. (b) Replace the field with `app`: the browser origin by default, or a stable identity the dapp declares when served from a gateway (an ENS name, or the owner address of the app's release feed). The wallet's own request header still shows the true site. (c) Two signed fields, `origin` and `app`; the key then depends on both, which defeats the purpose.
+**Leaning.** (b), default equal to today's behaviour so conventional dapps change nothing. Field name `app`, not an overloaded `origin`, because the user reads it in the wallet prompt.
+**Consequences.** Amends D1's message; no users yet, so no migration. Topic derivation uses `app` (`ARCHITECTURE.md`, storage layout). THREATS T14: with a declared `app`, a phishing site can name it too, and the remaining defence is the wallet's request-origin line, which for gateway users shows a gateway hostname anyway. Dapps that choose app binding accept that and say so in their UX; verifying an ENS contenthash against the loaded bundle is a Phase 4 option. D7 inherits the same identifier.
+
+## D17 — Sub-keys for other libraries
+**Status:** open — closes in Phase 1 (API shape)
+**Context.** The SDK never returns `feedKey` or `encKey` (T2, T10). But a dapp on Swarm needs signing keys for things dappdata does not do: feeds the user owns in another library (swarm-collaborative-docs snapshots and signalling), GSOC, ACT grantees. Without a supported path, dapps will generate a random key and stash it in a slot, or ask the wallet for a second signature.
+**Options.** (a) Nothing; dapps keep their own keys in slots. (b) `deriveKey(purpose)`: `HKDF-SHA256(seed, info = "dappdata/sub/v1/" + purpose) mod n`, returned to the dapp as a `PrivateKey` it may hold. (c) A signer object (`address`, `sign(digest)`) that keeps the sub-key inside the SDK; needs the consuming libraries to accept a signer.
+**Leaning.** (b) now, (c) later for libraries that take a signer. The seed is already app-bound (D16), so `purpose` is enough. A leaked sub-key exposes what that library wrote, never the folder: the folder keys hang off other `info` strings and HKDF does not run backwards.
+**Consequences.** The `info` strings are part of the key and go into the v1 spec. THREATS T16. The `EntropySource` (D8, D21) stays the only place the seed enters.
+
+## D18 — The Bee transport is supplied by the caller
+**Status:** open — closes in Phase 1
+**Context.** D13 made the Bee endpoint an interface. The pin on bee-js 13 (D10) meets an ecosystem still on 12: swarm-collaborative-docs, most examples, the Swarm skill. A dapp that uses both would ship two bee-js majors from a Swarm address, where every byte is paid for on first load.
+**Options.** (a) bee-js 13 inside, plus a `Transport` interface (upload SOC with envelope, read feed update by index, look up latest, upload and download bytes) that a caller implements over its own bee-js instance. (b) No bee-js at all: core-sdk builds chunks and SOCs, `fetch` talks to the four Bee routes the SDK uses. (c) Status quo.
+**Leaning.** (a) for Phase 1, and measure (b): if the fetch transport is under a few hundred lines it becomes the default and bee-js a dev dependency.
+**Consequences.** `bee: { url }` becomes `transport: transport.http(url)` with `transport.custom(impl)` beside it. The bee-js pin (D10) then governs the default transport only.
+
+## D19 — The stamper as a service, and bucket state under frequent writes
+**Status:** open — closes in Phase 2
+**Context.** D4 and D12 make client-side stamping and never-lose-the-bucket-state the core operational rule (S3). Other libraries that write feeds on the user's behalf need to stamp too, and a collaborative editor writes a snapshot every few seconds, far more often than the SDK's own slots. A blank or stale stamper on a new device overwrites the user's own chunks and the node answers 201.
+**Options.** (a) Stamping stays private to the SDK; other libraries bring their own batch. (b) `stamper(batchId)` returns `{ stamp(address), state(), checkpoint() }` for any library to call; the SDK owns bucket state: in memory, cached locally as a hint, checkpointed to a reserved slot every N stamps or T seconds; a new device restores the checkpoint and advances every bucket by a safety margin at least the checkpoint interval, which is S3's "start from a slot range the old device cannot have used". (c) swarm-id's partition-lease design (D8): each device leases a disjoint slot range.
+**Leaning.** (b), with (c) as the refinement if two devices write at once. The margin costs capacity; depth sizing includes it (D23).
+**Consequences.** THREATS T12 gets its mitigation, promised in D4's consequences and not yet written. A local cache on a shared gateway origin can be read or altered by another app (T15), so the slot checkpoint wins over the local cache and a bucket never moves backwards. Gives swarmtyp the "user owns the batch, any node uploads" mode; swarm-collaborative-docs must accept a `stamp` hook, an upstream change on the Solar Punk side.
+
+## D20 — Envelope crypto as a module other libraries can use
+**Status:** open — design in Phase 1, closes in Phase 4
+**Context.** The D9 envelope (AES-256-GCM, nonce, additional authenticated data) is what any Swarm library needs to encrypt payloads before they leave the browser. swarm-collaborative-docs wants exactly this hook for private documents; its keys are per document and shared between collaborators, not the user's folder key.
+**Options.** (a) Keep the envelope internal. (b) Publish it as a pure module (`dappdata/envelope`: frame, encrypt, decrypt, any WebCrypto key, mandatory AAD) and offer `encrypt(bytes, aad)` / `decrypt` with the folder's `encKey` on the connected instance, the key never leaving WebCrypto. (c) (b) plus a CRDT adapter here.
+**Leaning.** (b). Not (c): D6 option (c) is "swarm-collaborative-docs with the D20 hook", so the two Solar Punk libraries divide the work: dappdata does keys, funding and encryption; swarm-collaborative-docs does sync.
+**Consequences.** Envelope format frozen in Phase 1 with the D22 schema byte. A slot is the natural home for the per-document keys a dapp hands to the other library.
+
+## D21 — Entropy sources without a wallet
+**Status:** open — mnemonic closes in Phase 1; passkeys in Phase 5
+**Context.** D2 refuses contract and passkey wallets; D8 left the seed behind an `EntropySource` interface with one implementation, the wallet signature. Swarm Desktop users often run a Bee node and no browser wallet, and CI needs a fixed seed.
+**Options.** (a) Wallet only. (b) Ship `entropy.wallet(provider)` (default), `entropy.mnemonic(words)` (BIP-39 seed; also the test source), and later `entropy.passkey()` over the WebAuthn PRF extension, which yields a deterministic secret in current browsers and is the way back in for the D2-excluded users without swarm-id's hosted domain. (c) (b) with the app binding applied after the source for every source alike, `seed = HKDF(secret, info = "dappdata/seed/v1/" + app)`, so a mnemonic user gets per-app isolation too and the wallet path is bound twice, harmlessly.
+**Leaning.** (c). One derivation spec for every source.
+**Consequences.** Touches the D15 derivation block; decide the two together. A dapp with wallet and mnemonic users runs one code path (swarmtyp's Phase 2 local-key users and its Phase 3 wallet users). Mnemonic loss is key loss (T4); the SDK says so.
+
+## D22 — Slot schema version and migration hook
+**Status:** open — closes in Phase 1
+**Context.** The envelope carries a format version; the value inside carries nothing. A dapp that changes its state shape has to guess what it reads back, and a two-device user runs two versions of the dapp for a while.
+**Options.** (a) Nothing; dapps embed their own version. (b) A `schema` byte in the frame; `get` returns it with `value` and `index`; `slot(name, { schema, migrate(old, fromSchema) })` upgrades on read and writes the new shape on the next `set`.
+**Leaning.** (b). One byte and one callback.
+**Consequences.** Frame layout fixed in Phase 1 alongside D9 and D20.
+
+## D23 — Funding granularity: one batch per user per app
+**Status:** open — closes in Phase 2
+**Context.** Per-app owner keys (D12, D16) mean each app a user adopts brings its own postage batch, funded separately. Raised in the review thread of 2026-09-04 (the note that was `issues.txt`) as probably the biggest UX question after the latency budget. A single user-level batch would need one key to sign every app's stamps, which is the cross-app isolation D8 keeps.
+**Options.** (a) Accept per-app batches and make them cheap and visible: `fund()` sizes depth and amount from a write budget the dapp declares, `health()` reports days of storage left, the dapp shows it, sponsors can `topUp` any of them. (b) A user-level "storage wallet" app that holds one batch and signs stamps for other apps through `postMessage`; this is swarm-id's hosted-domain design, declined in D8. (c) A shared batch with per-app bucket ranges; still one owner key, same objection.
+**Leaning.** (a) for v1, said plainly in `docs/FUNDING.md`. Revisit (b) in Phase 5 together with D8.
+**Consequences.** `Funding.fund()` gains a `budget` argument (writes per day, retention days). `ARCHITECTURE.md` funding section updated.

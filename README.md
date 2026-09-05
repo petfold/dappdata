@@ -11,13 +11,12 @@ The API below is the target from `docs/ARCHITECTURE.md`, not shipped code. It ma
 **Keep a user's settings across devices.** After Sign-In with Ethereum, hand dappdata the same provider. It asks the wallet for one more signature, over a fixed message that names your dapp's origin, and derives the user's storage key from it.
 
 ```ts
-import { DappData, funding } from "dappdata";
+import { DappData, entropy, transport } from "dappdata";
 
 const dd = await DappData.connect({
-  provider,                                   // EIP-1193, the one the user signed in with
-  dapp: { origin: window.location.origin },
-  bee: { url: "https://bee.example.org" },
-  funding: funding.proxy({ url: "https://proxy.example.org", session: siweToken }),
+  entropy: entropy.wallet(provider),          // EIP-1193, the one the user signed in with
+  app: { id: window.location.origin },        // or a stable identity if you are served from a Swarm gateway
+  transport: transport.http("https://bee.example.org"),
 });
 
 const prefs = dd.slot<Prefs>("preferences");
@@ -28,9 +27,15 @@ await prefs.set({ theme: "dark", slippage: 0.5 });
 **Restore on a fresh device.** Nothing to migrate and no account to create. The same wallet reproduces the same signature, so the same call finds the same folder:
 
 ```ts
-const dd = await DappData.connect({ provider, dapp, bee, funding });
+const dd = await DappData.connect({ entropy, app, transport });
 const { value } = (await dd.slot<Prefs>("preferences").get()) ?? { value: defaults };
 applyTheme(value.theme);
+```
+
+**Give another library a key.** Some libraries write their own feeds on the user's behalf. Ask for a sub-key: it follows the user to every device like the folder does, and losing it never exposes the folder.
+
+```ts
+const collabKey = dd.deriveKey("swarm-collaborative-docs");
 ```
 
 **Follow changes from another tab or device.**
