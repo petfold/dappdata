@@ -145,7 +145,7 @@ See *Revision notes* at the end for what changed since the chat draft.
 **Work.**
 - Docs site or README of record; examples; announce in Swarm channels.
 - Recruit one external dapp and support the integration.
-- **Candidate first adopter: swarmtyp** (Solar Punk, `../swarmtyp`, a collaborative Typst editor served from Swarm). Its plan already puts identity and the per-user project list on dappdata in its Phase 3, about six to eight weeks after 2026-09-05. It would exercise what the demo cannot: D16 (an app with no origin of its own), D17 (a key for swarm-collaborative-docs), D19 (a snapshot every few seconds), D6 (two devices on one list), T15 (a shared gateway origin).
+- **Candidate first adopter: swarmtyp** (Solar Punk, `../swarmtyp`, a collaborative Typst editor served from Swarm). Its plan already puts identity and the per-user project list on dappdata in its Phase 3, about six to eight weeks after 2026-09-05. It would exercise what the demo cannot: D16 (an app with no origin of its own), D17 (a key for swarm-collaborative-docs), D19 (a snapshot every few seconds), D6 (two devices on one list), T15 (a shared gateway origin). swarmtyp's D-23 (2026-09-05) plans three identity roots behind one interface, device key, mnemonic and wallet, with the device key as the default for users without a wallet; from dappdata it needs the mnemonic source of D21 built rather than listed, and D16's declared app identity accepted by `derive`, before its Phase 3.
 - Tracked separately, each its own issue: recordstore as the structured or transactional layer (IDEA-166 convergence); reuse of IDEA-176's sponsored-batch mechanics if that idea advances; the smart-account fallback from S1.
 
 **Gate.** One external dapp in production or public beta with dappdata state.
