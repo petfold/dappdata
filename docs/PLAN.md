@@ -58,6 +58,7 @@ See *Revision notes* at the end for what changed since the chat draft.
 - `envelope`: encrypt and frame a state value; inline when it fits a feed payload, otherwise upload the blob with Swarm encryption and put the reference in the feed. The frame carries a schema byte (D22); frame and crypto are a pure module reusable with any key (D20).
 - `slot`: `get`, `set`, and `watch` on one named piece of state, over a sequential feed owned by the derived key. `set` takes `expectIndex` and a `merge` callback (D6); `get` returns the schema and runs `migrate` (D22).
 - A transport supplied by the dapp: the default HTTP transport or the caller's own (D18); single writer; no funding logic (writes use a stamp the caller supplies).
+- The D2 contract-account check, with the EIP-7702 delegation designator treated as an EOA (D25).
 - Unit tests with a mocked Bee; integration tests against bee-factory.
 
 **Out of scope for M0.** Funding flows, merge strategies beyond expect-index (D6), cross-dapp discovery, React bindings.
@@ -84,13 +85,14 @@ See *Revision notes* at the end for what changed since the chat draft.
 - Both adapters behind one `Funding` interface so the dapp changes one line to switch.
 - **Stamper as a service (D19).** `stamper(batchId)` for other libraries; bucket state checkpointed to a reserved slot, restored and advanced on a new device; a test that a second device never reuses a slot.
 - **Granularity (D23).** `fund()` sizes a batch from a declared write budget; `health()` reports days left; `docs/FUNDING.md` says plainly that each app brings its own batch.
+- **Passkey entropy source (D21, D25).** `entropy.passkey()` over WebAuthn PRF, with an evaluation of PRF-only derivation against PRF unlocking an encrypted seed kept on Swarm; the choice closes D21's passkey half.
 
 **Deliverables.** Both modes runnable from a script, on bee-factory and on Sepolia. A short `docs/FUNDING.md` for dapp developers: which mode, when, and what it costs.
 
 **Gate.**
 - C4: both modes demonstrated end to end on Sepolia.
 - Proxy abuse controls from `THREATS.md` (T7) are in the proxy config, not left as advice.
-- D19, D23 closed; T12 and T15 have a status.
+- D19, D23 closed; D21's passkey half closed (D25); T12 and T15 have a status.
 
 **Why before the demo.** The demo is only convincing if its writes are funded like a real deployment's, not hand-stamped from a dev batch.
 
@@ -106,6 +108,7 @@ See *Revision notes* at the end for what changed since the chat draft.
 - The restore path: mutate state, open a fresh browser profile, sign in, watch the state return.
 - Instrumentation: restore time, read-latest time, time until a second client sees a write. Reported in the UI and logged.
 - First honest test of the derivation UX: the extra signature prompt at sign-in and how the dapp explains it.
+- Wallet matrix additions (D25): one embedded-wallet provider (Privy or Dynamic) and one EIP-7702 upgraded MetaMask account, both checked for determinism and for the D2 check.
 - Optional: `packages/dappdata-react` with `useSlot` if the demo makes the hooks obvious.
 
 **Deliverables.** Deployed demo (Swarm-hosted if practical); a `docs/UX.md` note on the signature prompt with the wording we settled on; `docs/SWARM-HOSTED.md`, an integration guide for dapps served from a Swarm gateway (hash routing, gateway origins, no response headers, app binding per D16, subdomain gateways per T15).
@@ -180,3 +183,4 @@ Phase 0: days per spike, in parallel where wallets allow. Phases 1–3 together 
 - Added the Jira write-back at each gate.
 - 2026-09-05, review from the swarmtyp side: D15–D23 added as open items; THREATS T12–T16; Phase 1 and 2 gates extended; Phase 3 gains the Swarm-hosted integration guide; Phase 5 names swarmtyp as first adopter candidate. The review note `issues.txt` is folded into D15 and D23 and removed.
 - 2026-09-06, convergence assessment: `docs/CONVERGENCE.md` and `docs/PROPOSAL-swarm-id.md` added; D24 opened. Phase 1 spec adopts swarm-id's KDF primitive, canonicalisation and sub-key shape whatever the swarm-id team answers.
+- 2026-09-06, ecosystem identity review: D25 opened, T17 added. The D2 check learns EIP-7702; the passkey PRF source moves to Phase 2; Phase 3 matrix gains an embedded wallet and a 7702 account.

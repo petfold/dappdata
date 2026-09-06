@@ -77,6 +77,10 @@ On a path-based gateway every app shares one origin. Keys stay in memory and are
 A dapp holds a D17 sub-key in memory and loses it to XSS or a bad dependency.
 **Accepted, bounded by design.** The attacker gets what that library wrote under that key; the folder keys derive through other `info` strings and cannot be reached from a sub-key. Same lifetime rules as `feedKey` (T10). **Status:** accepted once D17 closes.
 
+### T17 — The ecosystem moves to accounts that cannot sign deterministically
+New-user wallets shift to passkey-owned smart accounts (ERC-4337, Coinbase Smart Wallet) whose ERC-1271 signatures are WebAuthn assertions and differ every time. D2 refuses them, so dappdata's reachable user base shrinks as the trend runs. A second, self-inflicted form: EIP-7702 upgraded EOAs still sign deterministically but return code from `eth_getCode`, and a naive check refuses them too.
+**Mitigation.** D25: treat the 7702 delegation designator as an EOA (Phase 1); ship the WebAuthn PRF entropy source in Phase 2, with the PRF-unlocks-a-seed variant evaluated so a lost or non-synced passkey is not a lost folder; verify one embedded-wallet provider in the Phase 3 matrix. Login format risk (SIWE replaced) is not a threat: the derivation message is our own. **Status:** open until D25 items close.
+
 ## Not in scope
 
 Compromise of the wallet itself. Compromise of the Bee node the dapp points at (it sees ciphertext and metadata only). Denial of service against Swarm.
