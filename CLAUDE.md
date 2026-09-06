@@ -13,9 +13,11 @@ Origin: Solar Punk Ideabox **IDEA-190** — https://solar-punk.atlassian.net/bro
 | `docs/PLAN.md` | What we build, in what order, and how we know a phase is done | First, always |
 | `docs/SPIKES.md` | Exact protocols for the three Phase 0 experiments | Before any Phase 0 work |
 | `docs/ARCHITECTURE.md` | Target design: keys, feed layout, encryption, funding, modules, API | Before any Phase 1+ code |
-| `docs/DECISIONS.md` | The decision log. Open items D1–D11; nothing they cover is final until closed | Before acting on anything marked *open* |
+| `docs/DECISIONS.md` | The decision log. Open items through D24; nothing they cover is final until closed | Before acting on anything marked *open* |
 | `docs/THREATS.md` | What can go wrong and what we do about it | Before touching keys, signatures, or funding |
 | `docs/CANVAS.md` | The IDEA-190 canvas — the *why* | When you need the original framing or references |
+| `docs/CONVERGENCE.md` | How dappdata relates to swarm-id and fdp-storage, and what we adopt from them | Before touching derivation, sub-keys or stamper state; before talking to the swarm-id team |
+| `docs/PROPOSAL-swarm-id.md` | The shared-spec argument for the swarm-id team | When Peter sends or discusses it |
 
 `docs/CANVAS.md` is the source of truth for why this exists. This file and the rest of `docs/` are the source of truth for how. Jira (IDEA-190) tracks the idea's status; this repo tracks the work.
 
@@ -75,5 +77,7 @@ Phase 0 started 2026-09-03. D10 closed (bee-js 13.0.0 + core-sdk 0.1.1). D3 dire
 **Sepolia nodes for S2/S3:** writer, Bee 2.8.2 (Swarm Desktop binary), `/home/test/bee-sepolia/`, API `127.0.0.1:1643`, wallet `0x13cB9947C508cf52a233a1E97d80Dd2485589481`, funded (sETH + 0.13 sBZZ, chequebook deployed, batch `98dfbb97…` depth 17). Reader, ultra-light, `/home/test/bee-sepolia-reader/`, API `127.0.0.1:1653`. Each has a `start.sh`. RPC: Tenderly's public Sepolia endpoint 429s on bursts from this machine once the node is on it; both configs point at `ethereum-sepolia-rpc.publicnode.com` now (watch the log for `eth_getLogs` trouble). sBZZ came from a Uniswap V3 swap by a throwaway key (`spikes/s3/`), key at `~/.dappdata-sepolia-swap.key`. Swarm Desktop's own mainnet node (`:1633`) is off limits; bee-factory's queen takes that port while it runs.
 
 **Review from swarmtyp, 2026-09-05** (`../swarmtyp`, first adopter candidate, PLAN Phase 5). Nine open items added, D15–D23: derivation input (`r‖s`, low-`s`), app identity instead of browser origin for gateway-hosted dapps, sub-keys for other libraries, caller-supplied transport, stamper as a service with checkpointed bucket state, envelope crypto as a reusable module, wallet-less entropy sources, slot schema versions, funding granularity. THREATS T12–T16 added; T7 and T9 statuses updated. `ARCHITECTURE.md` marks every affected section with its D-number; `PLAN.md` Phase 1 and 2 gates name them. The review thread that was `issues.txt` is folded into D15 and D23 and the file is gone.
+
+**Convergence with swarm-id, 2026-09-06** (`docs/CONVERGENCE.md`, D24 open). swarm-id's wallet mode unlocks a random seed in a device-local vault; it does not derive from the signature. Both projects are pre-user, so a shared derivation spec is possible now and not later. `docs/PROPOSAL-swarm-id.md` is the draft argument for their team, awaiting Peter's edit and send. Regardless of their answer, Phase 1 adopts their HMAC KDF primitive, canonicalisation rules, `deriveAppSecret(label)` shape and commit-ordered stamper handoff.
 
 **Next action:** Peter confirms the drafted closures of D3, D4, D5, D12, D13 in `docs/DECISIONS.md` and the Phase 0 go/no-go at the top of `docs/PLAN.md`; then the gate comment goes on IDEA-190 and Phase 1 starts. Before Phase 1 code, Peter reads D15, D16, D17, D21 and D22: they change the derivation spec and the frame, which cannot move after the first real user.

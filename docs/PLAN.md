@@ -179,3 +179,4 @@ Phase 0: days per spike, in parallel where wallets allow. Phases 1–3 together 
 - Added a testing and environments section, and the rule that CI never touches a real network.
 - Added the Jira write-back at each gate.
 - 2026-09-05, review from the swarmtyp side: D15–D23 added as open items; THREATS T12–T16; Phase 1 and 2 gates extended; Phase 3 gains the Swarm-hosted integration guide; Phase 5 names swarmtyp as first adopter candidate. The review note `issues.txt` is folded into D15 and D23 and removed.
+- 2026-09-06, convergence assessment: `docs/CONVERGENCE.md` and `docs/PROPOSAL-swarm-id.md` added; D24 opened. Phase 1 spec adopts swarm-id's KDF primitive, canonicalisation and sub-key shape whatever the swarm-id team answers.
