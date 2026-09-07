@@ -1,10 +1,10 @@
 # One signature, one folder: a shared derivation spec for swarm-id and dappdata
 
-Draft for the swarm-id team (Swarm Foundation), from the dappdata side (Solar Punk, IDEA-190). 2026-09-06. Peter Földiák; drafted by Claude from `snaha/swarm-id` main at 2026-09-04 and the dappdata design docs.
+Draft for the swarm-id team (Snaha/Swarm Foundation), from the dappdata side (Solar Punk, IDEA-190, https://github.com/petfold/dappdata ). 2026-09-06. Peter Földiák; drafted by Claude from `snaha/swarm-id` main at 2026-09-04 and the dappdata design docs.
 
 ## The problem in one paragraph
 
-Swarm is about to have two ways for a dapp to give a user per-app keys and encrypted state: swarm-id, a hosted keystore with passkeys and wallets, and dappdata, an in-page SDK that derives everything from one wallet signature. They agree on almost every design choice. They disagree on one: what the identity is rooted in. If both ship as they are, the same user gets a different folder in every dapp depending on which SDK the dapp chose, and moving a dapp from one SDK to the other loses the user's data. A small ecosystem cannot afford that. We would like to fix it now, while swarm-id is 0.x and dappdata has no users, which are the only conditions under which it can be fixed at all.
+Swarm is about to have two ways for a dapp to give a user per-app keys and encrypted state: swarm-id, a hosted keystore with passkeys and wallets, and dappdata, an in-page SDK that derives everything from one wallet signature by the account the user already proved with Sign-In with Ethereum (SIWE, ERC-4361). They agree on almost every design choice. They disagree on one: what the identity is rooted in. If both ship as they are, the same user gets a different folder in every dapp depending on which SDK the dapp chose, and moving a dapp from one SDK to the other loses the user's data. A small ecosystem cannot afford that. We would like to fix it now, while swarm-id is 0.x and dappdata has no users, which are the only conditions under which it can be fixed at all.
 
 ## What we already agree on
 
@@ -22,7 +22,7 @@ Read from your code, not your README:
 
 In swarm-id the account is a random BIP-39 seed. A passkey, a wallet signature or a password only unlocks a device-local vault that holds that seed. On a new device the user needs the recovery phrase.
 
-In dappdata the wallet signature over a fixed EIP-712 message *is* the root. There is no seed to store, no vault and no phrase. Any device with the wallet reproduces the same keys.
+In dappdata the wallet signature over a fixed EIP-712 message *is* the root. There is no seed to store, no vault and no phrase. Any device with the wallet reproduces the same keys. The identity is the one the dapp already authenticated with SIWE: dappdata adds a second, fixed-message signature for derivation, because the SIWE message itself carries a nonce and cannot seed anything. SIWE went Final in August 2025 and is the authentication leg of the Ethereum Identity Foundation stack beside ENS and EFP; wagmi, viem, Reown AppKit, Privy, MetaMask and Base ship it. dappdata builds nothing at the identity layer. It consumes the ecosystem's login and derives storage keys from it.
 
 Neither is wrong. Yours serves users with no wallet and protects keys from XSS by keeping them off the dapp's origin. Ours serves users who already signed in with a wallet and needs no infrastructure. They should be two profiles of one spec, not two specs.
 
@@ -42,6 +42,17 @@ Neither is wrong. Yours serves users with no wallet and protects keys from XSS b
 
 **P4. Shared formats, later.** An encryption envelope (AES-256-GCM, mandatory additional data, a schema byte) and a stamper state format that lets a batch be handed between implementations. Not needed for P1 to be useful.
 
+## What swarm-id gains
+
+This is not only a request. Each item is something swarm-id gets that it does not have today.
+
+- **Wallet users without a recovery phrase.** Today a wallet user on a clean device needs the phrase or a `.swarmid` file. A wallet-rooted account (P2) restores from the wallet alone, and turns IDEA-176's "reconstructed on a clean device using the account's deterministic authority" from a criterion that needs the phrase into one that holds by construction.
+- **A place in the Ethereum identity stack.** swarm-id's README names SIWE, but the code signs a `personal_sign` text and uses it only to unlock a vault. A SIWE-rooted account puts swarm-id on the same login every Ethereum dapp already has, alongside ENS and EFP, instead of asking users for a Swarm-specific account. That is the adoption path a Swarm-sized project cannot build on its own.
+- **Every dappdata dapp becomes a swarm-id dapp.** With one spec, a dapp that started on dappdata can adopt swarm-id later, for passkeys, passwords or the keystore's XSS protection, and its users keep their folders. Without it, switching means data loss, so no dapp will switch.
+- **Test evidence for the funding model.** dappdata's S3 spike verified on Sepolia exactly what IDEA-176 proposes: a batch owned by a derived key, paid by a different key, stamped client-side, accepted by a node holding no batch, topped up by a non-owner, dilute refused to a non-owner. The scripts are public and can seed the Persistent Core provisioning service.
+- **A second implementation of the interop root.** Your multi-device page is written so the scheme can be re-implemented elsewhere. dappdata would be that second implementation for the derivation half, with test vectors both sides run in CI.
+- **Review of the derivation code by a second team.** Two independent readings caught things on our side already (D15, from your `signature.ts`). It works in both directions.
+
 ## What each side keeps
 
 swarm-id keeps the hosted keystore, passkeys, password accounts, the mutable-batch partition lease, the account bus, Safari support and the funding UI. dappdata keeps the in-page profile with no third-party origin, immutable batches, bee-js 13 and the one-package integration. Neither codebase merges into the other. Neither team takes on the other's roadmap.
@@ -52,7 +63,7 @@ Your `AGENTS.md`: "While the version is 0.x we consider the project pre-producti
 
 ## What we are asking for
 
-1. A call within two weeks.
+1. A response email (within about two weeks if possible).
 2. Agreement on P1 as a short spec with test vectors, in a shared repository or as a SWIP. We will write the first draft.
 3. A decision on P2. If yes, we align our Phase 1 to your context strings before we ship. If no, we still adopt your KDF primitive and canonicalisation, so a later change of mind stays cheap.
 
@@ -65,3 +76,4 @@ Merging codebases. Changing your bee-js pin or ours. dappdata depending on swarm
 - swarm-id: `lib/src/utils/key-derivation.ts`, `ui/src/lib/crypto/eth-wallet.ts`, `ui/src/lib/crypto/signature.ts`, `lib/src/schemas.ts` (SyncedAccountSchemaV1), docs-site "Multi-Device Postage Batches", "Key derivation (the interop root)".
 - dappdata: `docs/ARCHITECTURE.md` (Identity and keys), `docs/DECISIONS.md` D1, D2, D8, D15, D16, D17, D21, D24; `spikes/s1/RESULTS.md` (determinism across MetaMask, Rabby, ethers, eth-sig-util, viem).
 - Ideabox: IDEA-190 (dappdata), IDEA-176 (Swarm ID core storage).
+- SIWE: ERC-4361 (Final, 2025-08), https://eips.ethereum.org/EIPS/eip-4361; Ethereum Identity Kit, https://ethidentitykit.com.
