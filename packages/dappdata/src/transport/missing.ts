@@ -10,6 +10,12 @@
  *
  * So a failed chunk read counts as absent, and only there: the feed lookup
  * and the blob routes keep their 404s, and every other error still throws.
+ *
+ * Both halves are reported upstream: ethersphere/bee#5624 (one status code
+ * for "found nothing" and "broke"), ethersphere/bee-js#1263 (the node's
+ * message never reaches the caller on binary endpoints, which is why the
+ * patterns below have to match a bare "internal server error" too). If Bee
+ * answers 404 one day, the 500 branch here can go.
  */
 const MISSING_CHUNK = /read chunk failed|chunk not found|not found|internal server error/i;
 
