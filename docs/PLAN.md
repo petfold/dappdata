@@ -73,6 +73,8 @@ See *Revision notes* at the end for what changed since the chat draft.
 
 **Size.** The plumbing exists in bee-js; expect the effort to go into the derivation edge cases and the envelope format.
 
+**Progress, 2026-09-21.** `packages/dappdata` has `derive`, `entropy` (wallet and mnemonic), `siwe`, `envelope`, `transport` (bee-js, fetch, in-memory), `feed` and `slot`, with `DappData.connect` over them. 46 unit tests run against a mocked Bee, plus a typecheck and a build; the README example runs as a test, including the fresh-device restore (C2 in miniature). The v1 derivation is pinned by a golden vector. The D18 measurement is done and recorded in `DECISIONS.md`: the fetch transport is 120 lines and 26 KB gzipped against bee-js's 167 KB, so it becomes the default once it has passed the bee-factory run. Left for the gate: that integration run (a mainnet Bee holds port 1633 on this machine, so bee-factory needs it free), and C5 checked on a real node rather than in memory.
+
 ---
 
 ## Phase 2 — Funding flows

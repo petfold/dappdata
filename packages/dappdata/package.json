@@ -24,13 +24,15 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
     "@ethersphere/bee-js": "13.0.0",
     "@ethersphere/core-sdk": "0.1.1",
     "@noble/curves": "^1.9.1",
-    "@noble/hashes": "^1.8.0"
+    "@noble/hashes": "^1.8.0",
+    "@scure/bip39": "^2.4.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

@@ -2,11 +2,11 @@
 
 Persistent, per-user dapp state on Swarm, keyed to a Sign-In with Ethereum identity — the per-user application-data folder, for dapps. One wallet signature derives a storage key; state lives in encrypted Swarm feeds that key owns; any device that can reproduce the signature gets the state back.
 
-Status: pre-development. Phase 0 spikes are running (`spikes/`); the SDK is not published yet. Planning and decision docs live in `docs/`; start with `docs/PLAN.md`. Working with Claude Code? Read `CLAUDE.md` first.
+Status: Phase 0 is done and its gate is GO (2026-09-21); Phase 1 is under way in `packages/dappdata`, where derivation, entropy sources, the envelope, the transports, the feed and slots work against a mocked Bee. The SDK is not published yet, funding arrives in Phase 2, and a caller still supplies a postage batch. Planning and decision docs live in `docs/`; start with `docs/PLAN.md`. Working with Claude Code? Read `CLAUDE.md` first.
 
-## What it will look like
+## What it looks like
 
-The API below is the target from `docs/ARCHITECTURE.md`, not shipped code. It may still move; the shape is the promise.
+The API below is implemented in `packages/dappdata` and covered by its tests, bar the funding calls, which are Phase 2. It is not published, so it can still move.
 
 **Keep a user's settings across devices.** After Sign-In with Ethereum, hand dappdata the same provider. It asks the wallet for one more signature, over a fixed message that names your dapp's origin, and derives the user's storage key from it.
 
@@ -17,6 +17,7 @@ const dd = await DappData.connect({
   entropy: entropy.wallet(provider),          // EIP-1193, the one the user signed in with
   app: { id: window.location.origin },        // or a stable identity if you are served from a Swarm gateway
   transport: transport.http("https://bee.example.org"),
+  stamp: batchId,                             // Phase 1: you bring a postage batch; funding is Phase 2
 });
 
 const prefs = dd.slot<Prefs>("preferences");

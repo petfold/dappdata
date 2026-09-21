@@ -7,9 +7,9 @@ import type { Eip1193Provider, EntropyContext, EntropyResult, EntropySource } fr
 
 export interface WalletSourceOptions {
   /** Which account to derive from. Default: the provider's first account. */
-  account?: string;
+  account?: string | undefined;
   /** Skip the contract-account check when the dapp has already done it. */
-  skipAccountCheck?: boolean;
+  skipAccountCheck?: boolean | undefined;
 }
 
 const utf8 = new TextEncoder();

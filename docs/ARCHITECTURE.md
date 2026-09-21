@@ -118,18 +118,21 @@ interface Funding {
 
 ```
 packages/dappdata/src/
-  entropy/     wallet, mnemonic, later passkey sources     (Phase 1, D21)
-  derive/      derivation message, HMAC KDF, folder keys, sub-keys (Phase 1, D15, D16, D17, D21)
-  envelope/    frame, encrypt, inline-vs-ref; pure, any key  (Phase 1, D20, D22)
-  transport/   Bee routes behind an interface; http default (Phase 1, D18)
-  feed/        sequential feed read/write over the transport (Phase 1)
-  slot/        public get/set/watch, expectIndex, migrate  (Phase 1, D6, D22)
+  entropy/     wallet, mnemonic, later passkey sources     (written, D21)
+  derive/      derivation message, HMAC KDF, folder keys, sub-keys (written, D15, D16, D17, D21)
+  envelope/    frame, encrypt, inline-vs-ref; pure, any key  (written, D20, D22)
+  transport/   Bee routes behind an interface; http, fetch, memory (written, D18)
+  feed/        sequential feed read/write, index cache      (written, D5)
+  slot/        public get/set/watch, expectIndex, migrate  (written, D6, D22)
   funding/     Funding interface: fund, fundingLinks, health (Phase 2, D3, D23)
   stamper/     client-side stamping, bucket state, checkpoints  (Phase 2, D19)
-  siwe/        helpers to detect a contract account, read origin   (Phase 1)
+  siwe/        contract-account check, 7702 designator      (written, D2, D25)
 ```
 
-## Public API (sketch)
+## Public API
+
+Phase 1 implements everything below except the funding and stamper lines,
+which are Phase 2. `packages/dappdata` matches this shape today.
 
 ```ts
 import { DappData, entropy, transport } from "dappdata";
@@ -137,13 +140,14 @@ import { DappData, entropy, transport } from "dappdata";
 const dd = await DappData.connect({
   entropy: entropy.wallet(provider),          // EIP-1193, already signed in with SIWE; or entropy.mnemonic(words) (D21)
   app: { id: window.location.origin },        // or a declared identity for a Swarm-hosted dapp (D16)
-  transport: transport.http("https://bee.example.org"),   // or transport.custom(impl) over your own bee-js (D18)
+  transport: transport.http("https://bee.example.org"),   // or transport.fetch(url), transport.custom(impl) (D18)
+  stamp: batchId,                             // Phase 1: the caller supplies a batch; dd.funding lands in Phase 2
 });
 
-const prefs = dd.slot<Prefs>("preferences", { schema: 2, migrate });
+const prefs = dd.slot<Prefs>("preferences", { schema: 2, migrate });   // JSON by default; codec for raw bytes
 const current = await prefs.get();          // { value, index, schema } | null
 await prefs.set({ theme: "dark" }, { expectIndex: current?.index });   // typed conflict error if the feed moved (D6)
-const stop = prefs.watch(({ value }) => render(value));
+const stop = prefs.watch(({ value }) => render(value));   // polls with backoff; set() resolves on upload, not on sight
 
 // Funding: the user owns the batch, anyone pays (D3, D12, D23)
 const batch = await dd.funding.fund({ budget: { writesPerDay: 50, retentionDays: 90 } });
@@ -161,7 +165,8 @@ The first block is the README example and fifteen lines is its budget; if the re
 
 - `@ethersphere/bee-js` **13.0.0** (pinned exact, D10) — feeds, SOCs, uploads, stamps, the HTTP transport to a Bee node. Under D18 it backs the default transport only; a caller may supply its own, and D18 measures whether a `fetch` transport over core-sdk can replace it.
 - `@ethersphere/core-sdk` **0.1.1** (pinned exact, D10) — browser-safe primitives: `PrivateKey`, `Topic`, `FeedIndex`, SOC/CAC builders, `Stamper` for client-side stamping (D12). No network I/O.
-- `@noble/hashes`, `@noble/curves` — keccak, HKDF, secp256k1 for feed signing. Small, audited, no native code.
+- `@noble/hashes`, `@noble/curves` — keccak, HMAC-SHA256 (the D15 KDF), PBKDF2, secp256k1 for feed signing. Small, audited, no native code.
+- `@scure/bip39` — mnemonic validation and seed derivation for the D21 mnemonic source. Added 2026-09-21 with Peter's agreement: without the wordlist a typo opens a different, empty folder, which a user reads as lost data.
 - `siwe` — message parsing only, if needed; the dapp does the sign-in.
 - WebCrypto (platform) — AES-GCM.
 - Dev: vitest, bee-factory, a test EIP-1193 signer with a fixed key.

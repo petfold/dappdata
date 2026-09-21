@@ -149,6 +149,15 @@ Feeds and SOCs work as documented: sequential feeds via `makeWriter(topic, signe
 **Context.** D13 made the Bee endpoint an interface. The pin on bee-js 13 (D10) meets an ecosystem still on 12: swarm-collaborative-docs, most examples, the Swarm skill. A dapp that uses both would ship two bee-js majors from a Swarm address, where every byte is paid for on first load.
 **Options.** (a) bee-js 13 inside, plus a `Transport` interface (upload SOC with envelope, read feed update by index, look up latest, upload and download bytes) that a caller implements over its own bee-js instance. (b) No bee-js at all: core-sdk builds chunks and SOCs, `fetch` talks to the four Bee routes the SDK uses. (c) Status quo.
 **Decision.** (a) for Phase 1: bee-js 13 inside, behind a `Transport` interface (upload SOC with envelope, read feed update by index, look up latest, upload and download bytes) that a caller can implement over its own bee-js instance. Phase 1 also measures (b), a transport built on core-sdk and `fetch` over the four Bee routes the SDK uses: if it comes in under a few hundred lines it becomes the default and bee-js drops to a dev dependency. Record the line count and the bundle size in the Phase 1 gate.
+
+**Measurement (2026-09-21).** Both transports are written: `src/transport/http.ts` over bee-js is 69 lines, `src/transport/fetch.ts` over core-sdk and `fetch` is 120 lines — inside the "few hundred" the decision allowed. Bundled with esbuild (ESM, minified) from the same entry point, `DappData` plus the wallet source plus one transport:
+
+| Transport | Bundle | Gzipped |
+|---|---|---|
+| bee-js (`transport.http`) | 693 KB | 167 KB |
+| fetch (`transport.fetch`) | 68 KB | 26 KB |
+
+Six and a half times smaller on the wire, on a page where the user pays for every byte of the first load. The condition in this decision is met, so (b) becomes the default and bee-js moves to an optional peer — **once the fetch transport has passed the bee-factory integration run**, which is the Phase 1 gate's job. Until then both ship and `transport.http` stays the documented default.
 **Consequences.** `bee: { url }` becomes `transport: transport.http(url)` with `transport.custom(impl)` beside it. The bee-js pin (D10) then governs the default transport only.
 
 ## D19 — The stamper as a service, and bucket state under frequent writes

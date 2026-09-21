@@ -146,6 +146,11 @@ describe("the mnemonic source (D21)", () => {
   });
 
   it("refuses something that is not a mnemonic", () => {
-    expect(() => mnemonic("too few words")).toThrowError(/at least 12 words/);
+    expect(() => mnemonic("too few words")).toThrowError(/valid BIP-39 mnemonic/);
+  });
+
+  it("catches a typo through the BIP-39 checksum", () => {
+    const typo = WORDS.replace("yellow", "zebra");
+    expect(() => mnemonic(typo)).toThrowError(/valid BIP-39 mnemonic/);
   });
 });
