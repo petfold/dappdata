@@ -9,6 +9,17 @@ export interface FeedUpdate {
   payload: Uint8Array;
 }
 
+/**
+ * How a write is paid for. A batch id asks the node to stamp, which needs a
+ * node that holds the batch. A marshalled stamp is signed here by the batch
+ * owner — the derived storage key — and any node will take it, funds or no
+ * funds (D12, S3).
+ */
+export type Stamp = string | { batchId: string; marshalled: Uint8Array };
+
+export const stampBatchId = (stamp: Stamp): string =>
+  typeof stamp === "string" ? stamp : stamp.batchId;
+
 export interface PutFeedUpdate {
   /** 32-byte secp256k1 key that owns the feed. */
   signer: Uint8Array;
@@ -16,8 +27,8 @@ export interface PutFeedUpdate {
   index: bigint;
   /** At most 4096 bytes: one chunk (D9 sends anything larger to a blob). */
   payload: Uint8Array;
-  /** A postage batch the node can stamp with. Funding is Phase 2 (D3). */
-  stamp: string;
+  /** A batch the node stamps with, or a stamp this device signed (D12). */
+  stamp: Stamp;
 }
 
 export interface GetFeedUpdate {
@@ -46,6 +57,6 @@ export interface Transport {
   findLatest(args: { owner: string; topic: Uint8Array }): Promise<FeedUpdate | null>;
 
   /** A value too large for one chunk, uploaded with Swarm's encryption (D9). */
-  putBlob(args: { data: Uint8Array; stamp: string }): Promise<string>;
+  putBlob(args: { data: Uint8Array; stamp: Stamp }): Promise<string>;
   getBlob(reference: string): Promise<Uint8Array>;
 }

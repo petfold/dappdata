@@ -2,7 +2,7 @@
 import { ConflictError, DappDataError } from "../errors.js";
 import { Mode, open, seal } from "../envelope/index.js";
 import type { SequentialFeed } from "../feed/index.js";
-import type { Transport } from "../transport/types.js";
+import type { Stamp, Transport } from "../transport/types.js";
 import { type Codec, jsonCodec } from "./codec.js";
 
 export type { Codec } from "./codec.js";
@@ -25,7 +25,7 @@ export interface SlotOptions<T> {
   migrate?: ((old: unknown, fromSchema: number) => T | Promise<T>) | undefined;
   codec?: Codec<T> | undefined;
   /** Overrides the instance-wide postage batch for this slot. */
-  stamp?: string | undefined;
+  stamp?: Stamp | undefined;
 }
 
 export interface SetOptions<T> {
@@ -37,7 +37,7 @@ export interface SetOptions<T> {
   expectIndex?: bigint | undefined;
   /** Resolve a conflict instead of throwing it (D6). */
   merge?: ((local: T, remote: SlotValue<T>) => T | Promise<T>) | undefined;
-  stamp?: string | undefined;
+  stamp?: Stamp | undefined;
 }
 
 export interface WatchOptions {
@@ -53,7 +53,7 @@ export interface SlotContext<T> {
   key: CryptoKey;
   /** The AAD: the slot's topic, so a payload cannot be replayed elsewhere (D9). */
   aad: string;
-  stamp: string | undefined;
+  stamp: Stamp | undefined;
   options: SlotOptions<T>;
 }
 
@@ -181,7 +181,7 @@ export class Slot<T> {
   }
 
   /** Seal a value, sending anything too big for one chunk to a blob (D9). */
-  async #frame(value: T, stamp: string): Promise<Uint8Array> {
+  async #frame(value: T, stamp: Stamp): Promise<Uint8Array> {
     const bytes = this.#codec.encode(value);
     const schema = this.#ctx.options.schema ?? 0;
 

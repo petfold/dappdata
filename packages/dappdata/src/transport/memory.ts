@@ -3,7 +3,7 @@
 import { keccak_256 } from "@noble/hashes/sha3";
 import { bytesToHex } from "@noble/hashes/utils";
 import { secp256k1 } from "@noble/curves/secp256k1";
-import type { FeedUpdate, GetFeedUpdate, PutFeedUpdate, Transport } from "./types.js";
+import { type FeedUpdate, type GetFeedUpdate, type PutFeedUpdate, type Stamp, type Transport, stampBatchId } from "./types.js";
 
 const addressOf = (privateKey: Uint8Array): string =>
   "0x" + bytesToHex(keccak_256(secp256k1.getPublicKey(privateKey, false).subarray(1)).subarray(12));
@@ -13,27 +13,27 @@ const slotKey = (owner: string, topic: Uint8Array, index: bigint): string =>
 
 export interface MemoryTransport extends Transport {
   /** Every write the SDK made, in order. Handy in tests. */
-  readonly writes: Array<{ owner: string; index: bigint; bytes: number }>;
+  readonly writes: Array<{ owner: string; index: bigint; bytes: number; stamp: Stamp }>;
 }
 
 export function memory(): MemoryTransport {
   const feeds = new Map<string, Uint8Array>();
   const latest = new Map<string, bigint>();
   const blobs = new Map<string, Uint8Array>();
-  const writes: Array<{ owner: string; index: bigint; bytes: number }> = [];
+  const writes: Array<{ owner: string; index: bigint; bytes: number; stamp: Stamp }> = [];
 
   return {
     kind: "memory",
     writes,
 
     async putFeedUpdate({ signer, topic, index, payload, stamp }: PutFeedUpdate): Promise<void> {
-      if (!stamp) throw new Error("a write needs a postage batch");
+      if (!stampBatchId(stamp)) throw new Error("a write needs a postage batch");
       if (payload.length > 4096) throw new Error("a feed payload is one chunk");
       const owner = addressOf(signer);
       feeds.set(slotKey(owner, topic, index), new Uint8Array(payload));
       const head = `${owner.toLowerCase()}/${bytesToHex(topic)}`;
       if ((latest.get(head) ?? -1n) < index) latest.set(head, index);
-      writes.push({ owner, index, bytes: payload.length });
+      writes.push({ owner, index, bytes: payload.length, stamp });
     },
 
     async getFeedUpdate({ owner, topic, index }: GetFeedUpdate): Promise<Uint8Array | null> {
@@ -53,7 +53,7 @@ export function memory(): MemoryTransport {
       return payload ? { index, payload } : null;
     },
 
-    async putBlob({ data }: { data: Uint8Array; stamp: string }): Promise<string> {
+    async putBlob({ data }: { data: Uint8Array; stamp: Stamp }): Promise<string> {
       const reference = bytesToHex(keccak_256(data));
       blobs.set(reference, new Uint8Array(data));
       return reference;

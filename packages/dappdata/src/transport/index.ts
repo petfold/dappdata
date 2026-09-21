@@ -1,4 +1,5 @@
-export type { FeedUpdate, GetFeedUpdate, PutFeedUpdate, Transport } from "./types.js";
+export type { FeedUpdate, GetFeedUpdate, PutFeedUpdate, Stamp, Transport } from "./types.js";
+export { stampBatchId } from "./types.js";
 export { fetchTransport as fetch } from "./fetch.js";
 export { memory } from "./memory.js";
 

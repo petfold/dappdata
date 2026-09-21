@@ -9,8 +9,16 @@
 // the dapp operator's, or any public node that allows the origin.
 import { Bee } from "@ethersphere/bee-js";
 import { EthAddress, FeedIndex, PrivateKey, Topic } from "@ethersphere/core-sdk";
+import { DappDataError } from "../errors.js";
 import { isNotFound, isUnreadableChunk } from "./missing.js";
-import type { FeedUpdate, GetFeedUpdate, PutFeedUpdate, Transport } from "./types.js";
+import {
+  type FeedUpdate,
+  type GetFeedUpdate,
+  type PutFeedUpdate,
+  type Stamp,
+  type Transport,
+  stampBatchId,
+} from "./types.js";
 
 export interface HttpTransportOptions {
   /** A bee-js instance the dapp already has; otherwise the SDK makes one. */
@@ -24,6 +32,15 @@ export function http(url: string, options: HttpTransportOptions = {}): Transport
     kind: "http",
 
     async putFeedUpdate({ signer, topic, index, payload, stamp }: PutFeedUpdate): Promise<void> {
+      if (typeof stamp !== "string") {
+        // bee-js takes an Envelope, not marshalled bytes, and widening its
+        // SOCWriter type is the upstream change D12 noted. Until then, a
+        // client-signed stamp goes through `transport.fetch`.
+        throw new DappDataError(
+          "unsupported",
+          "the bee-js transport cannot carry a client-signed stamp yet; use transport.fetch (D12, D19)",
+        );
+      }
       const writer = bee.feed.makeWriter(new Topic(topic), new PrivateKey(signer));
       await writer.uploadPayload(stamp, payload, { index: FeedIndex.fromBigInt(index) });
     },
@@ -57,10 +74,10 @@ export function http(url: string, options: HttpTransportOptions = {}): Transport
       }
     },
 
-    async putBlob({ data, stamp }: { data: Uint8Array; stamp: string }): Promise<string> {
+    async putBlob({ data, stamp }: { data: Uint8Array; stamp: Stamp }): Promise<string> {
       // Swarm's own encryption: the 64-byte reference carries the key, and the
       // SDK seals that reference in the feed payload (D9).
-      const result = await bee.data.upload(stamp, data, { encrypt: true });
+      const result = await bee.data.upload(stampBatchId(stamp), data, { encrypt: true });
       return result.reference.toHex();
     },
 

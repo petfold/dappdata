@@ -16,10 +16,16 @@ import {
 } from "@ethersphere/core-sdk";
 import { DappDataError } from "../errors.js";
 import { isMissingChunkResponse } from "./missing.js";
-import type { FeedUpdate, GetFeedUpdate, PutFeedUpdate, Transport } from "./types.js";
+import { type FeedUpdate, type GetFeedUpdate, type PutFeedUpdate, type Stamp, type Transport } from "./types.js";
 
 const hex = (bytes: Uint8Array): string =>
   Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+
+/** Bee takes a batch id or a marshalled stamp, in different headers. */
+const stampHeader = (stamp: Stamp): Record<string, string> =>
+  typeof stamp === "string"
+    ? { "swarm-postage-batch-id": stamp }
+    : { "swarm-postage-stamp": hex(stamp.marshalled) };
 
 /** Sequential feeds: identifier = keccak256(topic ‖ index), index 8 bytes big-endian. */
 function feedIdentifier(topic: Uint8Array, index: bigint): Uint8Array {
@@ -66,7 +72,7 @@ export function fetchTransport(url: string, fetchImpl: typeof fetch = fetch): Tr
         `/soc/${owner}/${identifier.toHex()}?sig=${soc.signature.toHex()}`,
         {
           method: "POST",
-          headers: { "content-type": "application/octet-stream", "swarm-postage-batch-id": stamp },
+          headers: { "content-type": "application/octet-stream", ...stampHeader(stamp) },
           body: body as BodyInit,
         },
       );
@@ -104,12 +110,12 @@ export function fetchTransport(url: string, fetchImpl: typeof fetch = fetch): Tr
       };
     },
 
-    async putBlob({ data, stamp }: { data: Uint8Array; stamp: string }): Promise<string> {
+    async putBlob({ data, stamp }: { data: Uint8Array; stamp: Stamp }): Promise<string> {
       const response = await ask("/bytes", {
         method: "POST",
         headers: {
           "content-type": "application/octet-stream",
-          "swarm-postage-batch-id": stamp,
+          ...stampHeader(stamp),
           "swarm-encrypt": "true",
         },
         body: data as BodyInit,

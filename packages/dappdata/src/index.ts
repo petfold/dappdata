@@ -24,6 +24,15 @@ export type { Codec, SetOptions, SlotOptions, SlotValue, WatchOptions } from "./
 
 export { SequentialFeed } from "./feed/index.js";
 
+export { createStamper, DEFAULT_BLOCK, bucketCapacity, bucketOf } from "./stamper/index.js";
+export type {
+  CheckpointStore,
+  Stamper,
+  StamperOptions,
+  StamperState,
+  StamperStateWire,
+} from "./stamper/index.js";
+
 export * as entropy from "./entropy/index.js";
 export * as envelope from "./envelope/index.js";
 export * as transport from "./transport/index.js";

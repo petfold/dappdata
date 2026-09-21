@@ -7,7 +7,15 @@ import { importKey, open, seal } from "./envelope/index.js";
 import type { Opened } from "./envelope/index.js";
 import { SequentialFeed } from "./feed/index.js";
 import { Slot, type SlotOptions } from "./slot/index.js";
-import type { Transport } from "./transport/types.js";
+import {
+  type CheckpointStore,
+  type Stamper,
+  type StamperStateWire,
+  createStamper,
+  decodeState,
+  encodeState,
+} from "./stamper/index.js";
+import type { Stamp, Transport } from "./transport/types.js";
 
 const utf8 = new TextEncoder();
 
@@ -28,7 +36,7 @@ export interface ConnectOptions {
    * A postage batch the node can stamp writes with. Phase 1 takes it from the
    * caller; `funding.fund()` arrives in Phase 2 (D3, D23).
    */
-  stamp?: string | undefined;
+  stamp?: Stamp | undefined;
 }
 
 /** topic = keccak256("dappdata/v1/" + app + "/" + slot) (D16, D7). */
@@ -48,7 +56,7 @@ export class DappData {
   #feedKey: Uint8Array;
   #encKey: CryptoKey;
   #transport: Transport;
-  #stamp: string | undefined;
+  #stamp: Stamp | undefined;
   #slots = new Map<string, Slot<unknown>>();
 
   private constructor(args: {
@@ -58,7 +66,7 @@ export class DappData {
     feedAddress: string;
     encKey: CryptoKey;
     transport: Transport;
-    stamp: string | undefined;
+    stamp: Stamp | undefined;
     account: string | undefined;
   }) {
     this.app = args.app;
@@ -122,6 +130,41 @@ export class DappData {
    */
   deriveKey(purpose: string): { key: Uint8Array; address: string } {
     return deriveSubKey(this.#seed, purpose);
+  }
+
+  /**
+   * A stamper for this batch (D12, D19). The SDK signs stamps with the key
+   * that owns the batch — the derived storage key — so any node will take the
+   * write, and it keeps the bucket state in a reserved slot so a new device
+   * never reuses a slot that the old one may have spent (D4, T12).
+   *
+   * Other libraries that write on the user's behalf take this object rather
+   * than a batch id, so one device keeps one account of the batch.
+   */
+  async stamper(
+    batchId: string,
+    options: { depth: number; block?: number | undefined },
+  ): Promise<Stamper> {
+    // A reserved slot name: the leading dot is not something a dapp would
+    // choose, and the batch id keeps two batches apart.
+    const slot = this.slot<StamperStateWire>(`.stamper/${batchId}`, { schema: 1 });
+    const store: CheckpointStore = {
+      async load() {
+        const checkpoint = await slot.get();
+        return checkpoint === null ? null : decodeState(checkpoint.value);
+      },
+      async save(state) {
+        const current = await slot.get();
+        await slot.set(encodeState(state), { expectIndex: current?.index });
+      },
+    };
+    return createStamper({
+      signer: this.#feedKey,
+      batchId,
+      depth: options.depth,
+      store,
+      block: options.block,
+    });
   }
 
   /** The folder's encryption, for bytes the dapp keeps somewhere else (D20). */

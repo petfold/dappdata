@@ -4,7 +4,7 @@
 // index costs 10–300 ms. So the feed remembers where it got to, reads by
 // index, and falls back to the lookup only when it has nothing to start from.
 import { ConflictError } from "../errors.js";
-import type { FeedUpdate, Transport } from "../transport/types.js";
+import type { FeedUpdate, Stamp, Transport } from "../transport/types.js";
 
 /** How far the feed walks forward from a cached index before asking Bee. */
 const WALK_LIMIT = 16;
@@ -106,7 +106,7 @@ export class SequentialFeed {
    */
   async append(
     payload: Uint8Array,
-    options: { stamp: string; expectIndex?: bigint | undefined },
+    options: { stamp: Stamp; expectIndex?: bigint | undefined },
   ): Promise<bigint> {
     const signer = this.#signer;
     if (!signer) throw new Error("this feed is read-only: no signing key");
