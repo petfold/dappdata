@@ -37,6 +37,25 @@ export interface GetFeedUpdate {
   index: bigint;
 }
 
+/** What a Bee node knows about a postage batch. */
+export interface BatchStatus {
+  batchId: string;
+  usable: boolean;
+  depth: number;
+  bucketDepth: number;
+  immutable: boolean;
+  /** Chunks stamped into the fullest bucket, as Bee reports it. */
+  utilization: number;
+  ttlSeconds: number;
+}
+
+/** What postage costs right now, for sizing a purchase (D23). */
+export interface ChainState {
+  /** PLUR per chunk per block. */
+  currentPrice: bigint;
+  block: number;
+}
+
 export interface Transport {
   /** For diagnostics and the D18 measurement. */
   readonly kind: string;
@@ -59,4 +78,9 @@ export interface Transport {
   /** A value too large for one chunk, uploaded with Swarm's encryption (D9). */
   putBlob(args: { data: Uint8Array; stamp: Stamp }): Promise<string>;
   getBlob(reference: string): Promise<Uint8Array>;
+
+  /** What the node knows about a batch, or null if it knows of none. */
+  getBatch(batchId: string): Promise<BatchStatus | null>;
+  /** The current postage price, for sizing a purchase (D23). */
+  getChainState(): Promise<ChainState>;
 }

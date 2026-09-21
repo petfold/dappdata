@@ -2,7 +2,13 @@
 import { keccak_256 } from "@noble/hashes/sha3";
 import { bytesToHex } from "@noble/hashes/utils";
 import { deriveFolderKeys, deriveSeed, deriveSubKey } from "./derive/kdf.js";
-import type { EntropySource } from "./entropy/types.js";
+import type { Eip1193Provider, EntropySource } from "./entropy/types.js";
+import {
+  type ChainConfig,
+  type FundOptions,
+  type Funding,
+  funding,
+} from "./funding/index.js";
 import { importKey, open, seal } from "./envelope/index.js";
 import type { Opened } from "./envelope/index.js";
 import { SequentialFeed } from "./feed/index.js";
@@ -130,6 +136,27 @@ export class DappData {
    */
   deriveKey(purpose: string): { key: Uint8Array; address: string } {
     return deriveSubKey(this.#seed, purpose);
+  }
+
+  /**
+   * Funding, bound to this folder (D3, D12, D23). The owner of anything this
+   * buys is the derived storage key, whoever signs the transaction: the user,
+   * the dapp operator, a sponsor. One code path, and `topUp` needs no
+   * permission from the owner at all.
+   */
+  funding(payer: Eip1193Provider, chain: ChainConfig, from?: string): Funding {
+    const bound = funding({
+      payer,
+      chain,
+      transport: this.#transport,
+      ...(from === undefined ? {} : { from }),
+    });
+    return {
+      ...bound,
+      // The owner is this folder unless the caller insists otherwise.
+      fund: (options: Partial<FundOptions> = {}) =>
+        bound.fund({ owner: this.address, ...options }),
+    };
   }
 
   /**

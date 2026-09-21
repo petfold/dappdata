@@ -3,7 +3,16 @@
 import { keccak_256 } from "@noble/hashes/sha3";
 import { bytesToHex } from "@noble/hashes/utils";
 import { secp256k1 } from "@noble/curves/secp256k1";
-import { type FeedUpdate, type GetFeedUpdate, type PutFeedUpdate, type Stamp, type Transport, stampBatchId } from "./types.js";
+import {
+  type BatchStatus,
+  type ChainState,
+  type FeedUpdate,
+  type GetFeedUpdate,
+  type PutFeedUpdate,
+  type Stamp,
+  type Transport,
+  stampBatchId,
+} from "./types.js";
 
 const addressOf = (privateKey: Uint8Array): string =>
   "0x" + bytesToHex(keccak_256(secp256k1.getPublicKey(privateKey, false).subarray(1)).subarray(12));
@@ -14,6 +23,10 @@ const slotKey = (owner: string, topic: Uint8Array, index: bigint): string =>
 export interface MemoryTransport extends Transport {
   /** Every write the SDK made, in order. Handy in tests. */
   readonly writes: Array<{ owner: string; index: bigint; bytes: number; stamp: Stamp }>;
+  /** Pretend the node knows about this batch. */
+  setBatch(batch: BatchStatus): void;
+  /** Pretend postage costs this much per chunk per block. */
+  setPrice(currentPrice: bigint): void;
 }
 
 export function memory(): MemoryTransport {
@@ -21,6 +34,8 @@ export function memory(): MemoryTransport {
   const latest = new Map<string, bigint>();
   const blobs = new Map<string, Uint8Array>();
   const writes: Array<{ owner: string; index: bigint; bytes: number; stamp: Stamp }> = [];
+  const batches = new Map<string, BatchStatus>();
+  let price = 24_000n;
 
   return {
     kind: "memory",
@@ -63,6 +78,22 @@ export function memory(): MemoryTransport {
       const data = blobs.get(reference.replace(/^0x/, ""));
       if (!data) throw new Error(`no blob ${reference}`);
       return data;
+    },
+
+    async getBatch(batchId: string): Promise<BatchStatus | null> {
+      return batches.get(batchId.replace(/^0x/, "").toLowerCase()) ?? null;
+    },
+
+    async getChainState(): Promise<ChainState> {
+      return { currentPrice: price, block: 1 };
+    },
+
+    setBatch(batch: BatchStatus): void {
+      batches.set(batch.batchId.replace(/^0x/, "").toLowerCase(), batch);
+    },
+
+    setPrice(currentPrice: bigint): void {
+      price = currentPrice;
     },
   };
 }

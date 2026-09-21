@@ -12,6 +12,8 @@ import { EthAddress, FeedIndex, PrivateKey, Topic } from "@ethersphere/core-sdk"
 import { DappDataError } from "../errors.js";
 import { isNotFound, isUnreadableChunk } from "./missing.js";
 import {
+  type BatchStatus,
+  type ChainState,
   type FeedUpdate,
   type GetFeedUpdate,
   type PutFeedUpdate,
@@ -83,6 +85,29 @@ export function http(url: string, options: HttpTransportOptions = {}): Transport
 
     async getBlob(reference: string): Promise<Uint8Array> {
       return (await bee.data.download(reference)).toUint8Array();
+    },
+
+    async getBatch(batchId: string): Promise<BatchStatus | null> {
+      try {
+        const batch = await bee.stamp.get(batchId);
+        return {
+          batchId: batch.batchID.toHex(),
+          usable: batch.usable,
+          depth: batch.depth,
+          bucketDepth: batch.bucketDepth,
+          immutable: batch.immutableFlag,
+          utilization: batch.utilization,
+          ttlSeconds: Number(batch.duration.toSeconds()),
+        };
+      } catch (error) {
+        if (isNotFound(error)) return null;
+        throw error;
+      }
+    },
+
+    async getChainState(): Promise<ChainState> {
+      const state = await bee.status.getChainState();
+      return { currentPrice: BigInt(state.currentPrice), block: state.block };
     },
   };
 }

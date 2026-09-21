@@ -24,6 +24,17 @@ export type { Codec, SetOptions, SlotOptions, SlotValue, WatchOptions } from "./
 
 export { SequentialFeed } from "./feed/index.js";
 
+export { funding, gnosis, sepolia, custom as customChain, BUCKET_DEPTH } from "./funding/index.js";
+export type {
+  ChainConfig,
+  FundOptions,
+  FundResult,
+  Funding,
+  FundingLink,
+  Health,
+  WriteBudget,
+} from "./funding/index.js";
+
 export { createStamper, DEFAULT_BLOCK, bucketCapacity, bucketOf } from "./stamper/index.js";
 export type {
   CheckpointStore,

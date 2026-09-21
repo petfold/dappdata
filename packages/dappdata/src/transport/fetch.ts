@@ -16,7 +16,15 @@ import {
 } from "@ethersphere/core-sdk";
 import { DappDataError } from "../errors.js";
 import { isMissingChunkResponse } from "./missing.js";
-import { type FeedUpdate, type GetFeedUpdate, type PutFeedUpdate, type Stamp, type Transport } from "./types.js";
+import {
+  type BatchStatus,
+  type ChainState,
+  type FeedUpdate,
+  type GetFeedUpdate,
+  type PutFeedUpdate,
+  type Stamp,
+  type Transport,
+} from "./types.js";
 
 const hex = (bytes: Uint8Array): string =>
   Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
@@ -129,6 +137,35 @@ export function fetchTransport(url: string, fetchImpl: typeof fetch = fetch): Tr
       const response = await ask(`/bytes/${reference.replace(/^0x/, "")}`);
       if (response.status === 404) throw new DappDataError("unsupported", `no blob ${reference}`);
       return new Uint8Array(await response.arrayBuffer());
+    },
+
+    async getBatch(batchId: string): Promise<BatchStatus | null> {
+      const response = await askMaybe(`/stamps/${batchId.replace(/^0x/, "")}`);
+      if (response === null) return null;
+      const batch = (await response.json()) as {
+        batchID: string;
+        usable: boolean;
+        depth: number;
+        bucketDepth: number;
+        immutableFlag: boolean;
+        utilization: number;
+        batchTTL: number;
+      };
+      return {
+        batchId: batch.batchID,
+        usable: batch.usable,
+        depth: batch.depth,
+        bucketDepth: batch.bucketDepth,
+        immutable: batch.immutableFlag,
+        utilization: batch.utilization,
+        ttlSeconds: batch.batchTTL,
+      };
+    },
+
+    async getChainState(): Promise<ChainState> {
+      const response = await ask("/chainstate");
+      const state = (await response.json()) as { currentPrice: string; block: number };
+      return { currentPrice: BigInt(state.currentPrice), block: state.block };
     },
   };
 }

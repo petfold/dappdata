@@ -90,21 +90,26 @@ One model: **the user owns the batch, anyone pays, the SDK stamps.** Settled by 
 
 **Owner.** The postage batch's `_owner` is the derived storage key's address (D12). The user's wallet never signs stamps and never holds the batch; the SDK signs stamps with the derived key using core-sdk's `Stamper`, and uploads pre-stamped chunks through `POST /soc/{owner}/{id}` on any Bee HTTP endpoint that allows CORS. The endpoint holds no batch and no funds.
 
-**Stamper as a service *(D19)*.** `stamper(batchId)` exposes `stamp(address)`, `state()` and `checkpoint()` to any library that writes on the user's behalf. The SDK owns the bucket state: in memory, cached locally as a hint, checkpointed to a reserved slot every N stamps or T seconds. A new device restores the checkpoint and advances every bucket by a safety margin before its first stamp. A bucket never moves backwards, whatever a local cache says (T15).
+**Stamper as a service *(D19, revised in Phase 2)*.** `dd.stamper(batchId, { depth })` exposes `stamp(address)`, `state()` and `checkpoint()` to any library that writes on the user's behalf. The SDK owns the bucket state, checkpointed to a reserved slot, and the rule is **reserve before use**: the checkpoint records a height per bucket the device may spend, the device stamps below that line, and it extends the reservation with a fresh checkpoint before crossing it. A device that restores starts at the reserved heights, because everything below them may be spent and everything above cannot be. A crash therefore loses slots rather than reusing them (D4). The safety margin this section used to describe is gone: a batch has 65 536 buckets at every depth, so a bucket holds 2 chunks at depth 17 and 16 at depth 20, and a margin wide enough to cover an unsynced writer is wider than the space it protects. A bucket never moves backwards, whatever a local cache says (T15).
 
 **Payer.** Whoever calls `createBatch(owner, …)` or `topUp(batchId, …)` on the postage contract: the user, the dapp operator, a sponsor. Same code path, one function:
 
 ```ts
+// dd.funding(payerProvider, chain) binds the owner to this folder's address.
 interface Funding {
-  /** Buys or extends the user's batch. Payer is whoever signs the transaction. */
-  fund(opts: { owner: EthAddress; depth: number; amountPerChunk: bigint; batchId?: BatchId }): Promise<BatchId>;
-  /** D23: or declare a budget and let the SDK size depth and amount from it. */
-  fund(opts: { owner: EthAddress; budget: { writesPerDay: number; retentionDays: number }; batchId?: BatchId }): Promise<BatchId>;
+  /** Buy the user's batch. Depth and amount, or a budget the SDK sizes from (D23). */
+  fund(opts: { owner: string; depth?: number; amountPerChunk?: bigint; budget?: WriteBudget }): Promise<FundResult>;
+  /** What a budget would cost right now, quoted from the node's chain state. */
+  quote(budget: WriteBudget): Promise<{ depth: number; amountPerChunk: bigint; total: bigint }>;
+  /** Permissionless: a sponsor extends any batch, owner or not. */
+  topUp(batchId: string, amountPerChunk: bigint): Promise<string>;
+  health(batchId: string): Promise<{ usable: boolean; ttlSeconds: number; daysLeft: number; usage: number } | null>;
   /** Where the user can get xBZZ and xDAI; the SDK links out, it does not swap. */
-  fundingLinks(): FundingLink[];   // Jumper first (D3)
-  health(batchId: BatchId): Promise<{ usable: boolean; ttlSeconds: number; usage: number }>;
+  links(): FundingLink[];   // Jumper first (D3)
 }
 ```
+
+The SDK encodes the four contract calls itself — `allowance`, `approve`, `createBatch`, `topUp` — and sends them through the payer's EIP-1193 provider, so funding adds no web3 library to the bundle. Contract addresses come from `ethersphere/go-storage-incentives-abi`; `docs/FUNDING.md` lists them and says which we have actually transacted with.
 
 **Batch type.** Immutable, depth chosen for the slot count the dapp expects; the SDK refuses mutable batches. The protection against overwrites is the SDK's, not the flag's (D4): stamper bucket state is persisted with the slot metadata, restored before the first write on a new device, and the SDK stops at capacity and asks for a new batch. A reused slot silently replaces the earlier chunk on the network, immutable or not.
 
@@ -126,8 +131,8 @@ packages/dappdata/src/
   transport/   Bee routes behind an interface; fetch default, bee-js optional (written, D18)
   feed/        sequential feed read/write, index cache      (written, D5)
   slot/        public get/set/watch, expectIndex, migrate  (written, D6, D22)
-  funding/     Funding interface: fund, fundingLinks, health (Phase 2, D3, D23)
-  stamper/     client-side stamping, bucket state, checkpoints  (Phase 2, D19)
+  funding/     fund, quote, topUp, health, links; chains, ABI  (written, D3, D23)
+  stamper/     client-side stamping, reserve-before-use state (written, D19)
   siwe/        contract-account check, 7702 designator      (written, D2, D25)
 ```
 
