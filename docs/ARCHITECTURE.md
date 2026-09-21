@@ -36,12 +36,15 @@ One wallet signature at sign-in yields a storage identity. State lives in feeds 
 
 ```
 sig      = eth_signTypedData_v4(derivationMessage)     // wallet; or another EntropySource (D21)
+           recover(sig) == account, else typed error    // D15: a wrong account must not open an empty folder
 secret   = keccak256(r ‖ s_low)                        // D15: not the 65-byte signature; v is encoding, s normalised low
-seed     = HKDF-SHA256(secret, info="dappdata/seed/v1/" + app)   // D21: the same app binding for every source
-feedKey  = HKDF-SHA256(seed, info="dappdata/feed/v1") mod n   (secp256k1 order; re-hash if 0)
-encKey   = HKDF-SHA256(seed, info="dappdata/enc/v1")
-subKey   = HKDF-SHA256(seed, info="dappdata/sub/v1/" + purpose) mod n   // D17: the one key the dapp may hold
+seed     = HMAC-SHA256(secret, "dappdata/seed/v1/" + app)   // D21: the same app binding for every source
+feedKey  = HMAC-SHA256(seed, "dappdata/feed/v1") mod n   (secp256k1 order; re-hash if 0)
+encKey   = HMAC-SHA256(seed, "dappdata/enc/v1")
+subKey   = HMAC-SHA256(seed, "dappdata/sub/v1/" + purpose) mod n   // D17: the one key the dapp may hold
 ```
+
+**The primitive *(D15, D24, closed 2026-09-21)*.** The KDF is swarm-id's `HMAC-SHA256(key, utf8(context))` rather than HKDF, and the signature is canonicalised their way — compact form, EIP-155 rules — on top of low-`s`. Both projects can then publish the same test vectors whatever comes of the convergence proposal.
 
 The derivation message binds the app identity (D16), so each dapp gets its own feed owner. That is a privacy property (a dapp cannot enumerate another dapp's state) and a discoverability cost (see D7). The `scope` field is a version tag; changing it produces new keys, which is why it must never change without a migration path (Phase 4).
 
@@ -68,7 +71,7 @@ Frame, encrypt and decrypt are a pure module (`dappdata/envelope`) that works wi
 
 Inline when the value fits a chunk; otherwise the SDK uploads the value with Swarm's built-in encryption (which gives a 64-byte reference containing the decryption key) and stores that reference in the envelope, encrypted again with `encKey`. Readers never learn which mode a slot uses without the key.
 
-**Encryption *(D9)*.** Working assumption: AES-256-GCM through WebCrypto with `encKey`, random 96-bit nonce per write, topic as additional authenticated data so a payload cannot be replayed into another slot. ACT is not used for v1: there is one reader, the user; ACT's grantee model adds nothing yet. Revisit if sharing between users enters scope.
+**Encryption *(D9, closed 2026-09-21)*.** AES-256-GCM through WebCrypto with `encKey`, random 96-bit nonce per write, topic as additional authenticated data so a payload cannot be replayed into another slot. ACT is not used for v1: there is one reader, the user; ACT's grantee model adds nothing yet. Revisit if sharing between users enters scope.
 
 **Size limit.** A chunk holds 4096 bytes of data. The framing costs a few dozen bytes. The SDK measures the ciphertext and picks the mode; the caller never sees the boundary.
 
@@ -116,7 +119,7 @@ interface Funding {
 ```
 packages/dappdata/src/
   entropy/     wallet, mnemonic, later passkey sources     (Phase 1, D21)
-  derive/      derivation message, HKDF, folder keys, sub-keys   (Phase 1, D15, D16, D17)
+  derive/      derivation message, HMAC KDF, folder keys, sub-keys (Phase 1, D15, D16, D17, D21)
   envelope/    frame, encrypt, inline-vs-ref; pure, any key  (Phase 1, D20, D22)
   transport/   Bee routes behind an interface; http default (Phase 1, D18)
   feed/        sequential feed read/write over the transport (Phase 1)

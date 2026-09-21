@@ -68,8 +68,8 @@ See *Revision notes* at the end for what changed since the chat draft.
 **Gate.**
 - C1 is testable: the README example runs against bee-factory.
 - C5 holds on the wire: a test reads the raw feed chunk and finds ciphertext only.
-- D9 (encryption scheme) closed.
-- D15, D16, D17, D18, D21 (mnemonic source), D22 closed. They fix the derivation spec and the frame, which cannot change after the first real user.
+- The spec decisions that fix the derivation and the frame are closed **before the code**, not at this gate: D9, D15, D16, D17, D20 (direction), D21 (mnemonic source) and D22, all confirmed by Peter 2026-09-21. The gate checks that the code matches them.
+- D18 closes here: Phase 1 ships the `Transport` interface over bee-js 13 and measures a `fetch` transport on core-sdk; the gate records its size and names the default.
 
 **Size.** The plumbing exists in bee-js; expect the effort to go into the derivation edge cases and the envelope format.
 
