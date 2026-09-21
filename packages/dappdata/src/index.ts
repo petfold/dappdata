@@ -6,7 +6,7 @@
  * const dd = await DappData.connect({
  *   entropy: entropy.wallet(provider),
  *   app: { id: window.location.origin },
- *   transport: transport.http("https://bee.example.org"),
+ *   transport: transport.fetch("https://bee.example.org"),
  *   stamp: batchId,
  * });
  * const prefs = dd.slot<Prefs>("preferences");

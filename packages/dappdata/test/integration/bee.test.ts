@@ -10,7 +10,7 @@
  * itself unless both variables are set. Never point it at a mainnet node: a
  * write spends postage (CLAUDE.md, working rule 4).
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { DappData } from "../../src/dappdata.js";
 import { mnemonic } from "../../src/entropy/mnemonic.js";
 import { http } from "../../src/transport/http.js";
@@ -39,8 +39,8 @@ const connect = (transport: Transport, app: string): Promise<DappData> =>
   });
 
 for (const [name, make] of [
-  ["bee-js transport", () => http(URL as string)],
-  ["fetch transport (D18)", () => fetchTransport(URL as string)],
+  ["bee-js transport (dappdata/transport/bee-js)", () => http(URL as string)],
+  ["fetch transport (the default)", () => fetchTransport(URL as string)],
 ] as const) {
   run(`${name}, against a real node`, () => {
     it("writes a slot and reads it back", async () => {
@@ -55,6 +55,17 @@ for (const [name, make] of [
       expect(current?.value.theme).toBe("dark");
       expect(current?.index).toBe(0n);
       expect(current?.schema).toBe(1);
+
+      // A second reader, with no memory of the write, has to wait for the
+      // chunk to become readable: about a second on bee-factory.
+      const reader = await connect(make(), app);
+      await vi.waitFor(
+        async () => {
+          const seen = await reader.slot<Prefs>("preferences", { schema: 1 }).get();
+          expect(seen?.value.theme).toBe("dark");
+        },
+        { timeout: 30_000, interval: 250 },
+      );
     }, 60_000);
 
     it("keeps the state unreadable on the wire (C5)", async () => {
@@ -64,13 +75,20 @@ for (const [name, make] of [
       await dd.slot<Prefs>("preferences").set({ theme: "sepia", updatedAt: 1 });
 
       const { slotTopic } = await import("../../src/dappdata.js");
-      const raw = await transport.getFeedUpdate({
-        owner: dd.address,
-        topic: slotTopic(app, "preferences"),
-        index: 0n,
-      });
-      expect(raw).not.toBeNull();
-      expect(new TextDecoder().decode(raw as Uint8Array)).not.toContain("sepia");
+      await vi.waitFor(
+        async () => {
+          const raw = await transport.getFeedUpdate({
+            owner: dd.address,
+            topic: slotTopic(app, "preferences"),
+            index: 0n,
+          });
+          expect(raw).not.toBeNull();
+          // What a network observer gets: the sealed frame, not the value.
+          expect(new TextDecoder().decode(raw as Uint8Array)).not.toContain("sepia");
+          expect(new TextDecoder().decode(raw as Uint8Array)).not.toContain("theme");
+        },
+        { timeout: 30_000, interval: 250 },
+      );
     }, 60_000);
 
     it("sends a large value to an encrypted blob and back (D9)", async () => {
@@ -92,6 +110,39 @@ run("the two transports agree", () => {
     await written.slot<Prefs>("preferences").set({ theme: "dark", updatedAt: 7 });
 
     const read = await connect(fetchTransport(URL as string), app);
-    expect((await read.slot<Prefs>("preferences").get())?.value.theme).toBe("dark");
+    await vi.waitFor(
+      async () => {
+        expect((await read.slot<Prefs>("preferences").get())?.value.theme).toBe("dark");
+      },
+      { timeout: 30_000, interval: 250 },
+    );
   }, 60_000);
+});
+
+run("the README example, against a real node (C1)", () => {
+  it("stores state and restores it on a fresh device (C2)", async () => {
+    const app = `test-readme-${Date.now()}`;
+    const rendered: string[] = [];
+
+    // The README's lines, with the mnemonic source standing in for a wallet.
+    const dd = await connect(http(URL as string), app);
+    const prefs = dd.slot<Prefs>("preferences", { schema: 1 });
+    const current = await prefs.get();
+    await prefs.set({ theme: "dark", updatedAt: Date.now() }, { expectIndex: current?.index });
+    const stop = prefs.watch(({ value }) => rendered.push(value.theme), { intervalMs: 500 });
+
+    // A fresh device: same words, same app, nothing carried across.
+    const freshDevice = await connect(http(URL as string), app);
+    expect(freshDevice.address).toBe(dd.address);
+    await vi.waitFor(
+      async () => {
+        const restored = await freshDevice.slot<Prefs>("preferences", { schema: 1 }).get();
+        expect(restored?.value.theme).toBe("dark");
+      },
+      { timeout: 30_000, interval: 250 },
+    );
+
+    await vi.waitFor(() => expect(rendered).toContain("dark"), { timeout: 10_000 });
+    stop();
+  }, 120_000);
 });

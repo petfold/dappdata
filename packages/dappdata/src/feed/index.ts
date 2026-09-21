@@ -27,6 +27,7 @@ export class SequentialFeed {
   #transport: Transport;
   #signer: Uint8Array | undefined;
   #index: bigint | null = null;
+  #lastWritten: FeedUpdate | null = null;
 
   constructor(options: FeedOptions) {
     this.#transport = options.transport;
@@ -53,8 +54,20 @@ export class SequentialFeed {
    * The newest update. Warm, this is one read by index plus one probe; cold,
    * it is Bee's lookup once and then never again for this feed — including
    * when the answer is "empty", because the next write goes to index 0.
+   *
+   * A write this device just made is served from memory: a chunk takes about
+   * a second to become readable on the node that accepted it (measured on
+   * bee-factory, 2026-09-21), and a dapp that renders after `set` should not
+   * see the state it just wrote disappear.
    */
   async latest(): Promise<FeedUpdate | null> {
+    const fromNetwork = await this.#latestFromNetwork();
+    const mine = this.#lastWritten;
+    if (mine && (fromNetwork === null || fromNetwork.index < mine.index)) return mine;
+    return fromNetwork;
+  }
+
+  async #latestFromNetwork(): Promise<FeedUpdate | null> {
     if (this.#index === null) return this.#lookup();
 
     let index = this.#index;
@@ -84,6 +97,12 @@ export class SequentialFeed {
   /**
    * Append one update. `expectIndex` is the index the caller read; the write
    * fails with a `ConflictError` when another device got there first (D6).
+   *
+   * The check is honest but not airtight. Bee answers a read for a chunk it
+   * cannot find and one that does not exist the same way (500 "read chunk
+   * failed"), and a write takes about a second to become readable, so a
+   * foreign write inside that window is invisible to any client. `merge`
+   * resolves what this catches; the window itself belongs to D6 and D19.
    */
   async append(
     payload: Uint8Array,
@@ -111,6 +130,7 @@ export class SequentialFeed {
       stamp: options.stamp,
     });
     this.#index = index;
+    this.#lastWritten = { index, payload };
     return index;
   }
 

@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit:
+    name: Typecheck, unit tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter dappdata typecheck
+      - run: pnpm --filter dappdata test
+      - run: pnpm --filter dappdata build
+
+  integration:
+    # Nothing in CI touches a real network (PLAN, "Tests"): this runs a local
+    # bee-factory cluster and a batch bought on its own dev chain. It is
+    # manual because the cluster takes minutes to warm up.
+    name: Integration against bee-factory
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Start bee-factory
+        run: |
+          npx --yes @ethersphere/bee-factory start &
+          for i in $(seq 1 120); do
+            curl -sf http://127.0.0.1:1633/health >/dev/null && break
+            sleep 5
+          done
+          curl -sf http://127.0.0.1:1633/health
+      - name: Buy an immutable batch
+        id: batch
+        run: |
+          id=$(curl -s -X POST "http://127.0.0.1:1633/stamps/1000000000/20?label=ci" \
+                 -H "immutable: true" | sed -n 's/.*"batchID":"\([0-9a-f]*\)".*/\1/p')
+          for i in $(seq 1 60); do
+            curl -s "http://127.0.0.1:1633/stamps/$id" | grep -q '"usable":true' && break
+            sleep 5
+          done
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+      - name: Run the integration suite
+        env:
+          DAPPDATA_BEE_URL: http://127.0.0.1:1633
+          DAPPDATA_STAMP: ${{ steps.batch.outputs.id }}
+        run: pnpm --filter dappdata test:integration

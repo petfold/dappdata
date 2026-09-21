@@ -15,6 +15,7 @@ import {
   unmarshalSingleOwnerChunk,
 } from "@ethersphere/core-sdk";
 import { DappDataError } from "../errors.js";
+import { isMissingChunkResponse } from "./missing.js";
 import type { FeedUpdate, GetFeedUpdate, PutFeedUpdate, Transport } from "./types.js";
 
 const hex = (bytes: Uint8Array): string =>
@@ -35,13 +36,20 @@ export function fetchTransport(url: string, fetchImpl: typeof fetch = fetch): Tr
 
   const ask = async (path: string, init?: RequestInit): Promise<Response> => {
     const response = await fetchImpl(`${base}${path}`, init);
-    if (!response.ok && response.status !== 404) {
-      throw new DappDataError(
-        "unsupported",
-        `Bee answered ${response.status} for ${path}: ${await response.text()}`,
-      );
-    }
-    return response;
+    if (response.ok || response.status === 404) return response;
+    throw new DappDataError(
+      "unsupported",
+      `Bee answered ${response.status} for ${path}: ${await response.text()}`,
+    );
+  };
+
+  /** Reads that are allowed to come back empty: see `missing.ts`. */
+  const askMaybe = async (path: string): Promise<Response | null> => {
+    const response = await fetchImpl(`${base}${path}`);
+    if (response.ok) return response;
+    const body = await response.text();
+    if (isMissingChunkResponse(response.status, body)) return null;
+    throw new DappDataError("unsupported", `Bee answered ${response.status} for ${path}: ${body}`);
   };
 
   return {
@@ -70,8 +78,8 @@ export function fetchTransport(url: string, fetchImpl: typeof fetch = fetch): Tr
     async getFeedUpdate({ owner, topic, index }: GetFeedUpdate): Promise<Uint8Array | null> {
       const identifier = new Identifier(feedIdentifier(topic, index));
       const address = makeSOCAddress(identifier, owner);
-      const response = await ask(`/chunks/${address.toHex()}`);
-      if (response.status === 404) return null;
+      const response = await askMaybe(`/chunks/${address.toHex()}`);
+      if (response === null) return null;
       const chunk = unmarshalSingleOwnerChunk(
         new Uint8Array(await response.arrayBuffer()),
         address,
@@ -86,8 +94,8 @@ export function fetchTransport(url: string, fetchImpl: typeof fetch = fetch): Tr
       owner: string;
       topic: Uint8Array;
     }): Promise<FeedUpdate | null> {
-      const response = await ask(`/feeds/${owner.replace(/^0x/, "")}/${hex(topic)}`);
-      if (response.status === 404) return null;
+      const response = await askMaybe(`/feeds/${owner.replace(/^0x/, "")}/${hex(topic)}`);
+      if (response === null) return null;
       const index = response.headers.get("swarm-feed-index");
       if (!index) return null;
       return {

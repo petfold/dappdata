@@ -110,6 +110,8 @@ interface Funding {
 
 **Granularity *(D23)*.** One batch per user per app, because the owner key is per app. `fund()` takes a write budget (writes per day, retention days) and sizes depth and amount from it, including the D19 safety margin; `health()` turns TTL into days of storage left for the dapp to show. `docs/FUNDING.md` (Phase 2) says plainly that each app brings its own batch and that a sponsor can top up any of them.
 
+**Reading your own write.** A chunk is not readable on the node that accepted it for about a second, and Bee answers a missing chunk and an unreadable one the same way (T18, measured 2026-09-21). The feed therefore keeps the update this device just wrote in memory and serves it from there, and the index probe before a write is a positive conflict signal only: it can prove a conflict, never prove its absence (D6).
+
 **Timing.** From `createBatch` confirmation to a batch usable on an arbitrary node: about 2 minutes on Sepolia. Funding starts right after sign-in; writes queue locally until `health().usable`; the dapp gets a pending state to show.
 
 **Cost on the day of S3** (Sepolia price 48 035 PLUR per chunk per block): depth 17 for 7 days ≈ 0.03 BZZ; depth 20 for 30 days ≈ 1.1 BZZ. Mainnet prices differ; the SDK quotes from `/chainstate` before buying.
@@ -121,7 +123,7 @@ packages/dappdata/src/
   entropy/     wallet, mnemonic, later passkey sources     (written, D21)
   derive/      derivation message, HMAC KDF, folder keys, sub-keys (written, D15, D16, D17, D21)
   envelope/    frame, encrypt, inline-vs-ref; pure, any key  (written, D20, D22)
-  transport/   Bee routes behind an interface; http, fetch, memory (written, D18)
+  transport/   Bee routes behind an interface; fetch default, bee-js optional (written, D18)
   feed/        sequential feed read/write, index cache      (written, D5)
   slot/        public get/set/watch, expectIndex, migrate  (written, D6, D22)
   funding/     Funding interface: fund, fundingLinks, health (Phase 2, D3, D23)
@@ -140,7 +142,7 @@ import { DappData, entropy, transport } from "dappdata";
 const dd = await DappData.connect({
   entropy: entropy.wallet(provider),          // EIP-1193, already signed in with SIWE; or entropy.mnemonic(words) (D21)
   app: { id: window.location.origin },        // or a declared identity for a Swarm-hosted dapp (D16)
-  transport: transport.http("https://bee.example.org"),   // or transport.fetch(url), transport.custom(impl) (D18)
+  transport: transport.fetch("https://bee.example.org"),  // the default (D18); or dappdata/transport/bee-js, transport.custom(impl)
   stamp: batchId,                             // Phase 1: the caller supplies a batch; dd.funding lands in Phase 2
 });
 
@@ -163,7 +165,7 @@ The first block is the README example and fifteen lines is its budget; if the re
 
 ## Dependencies
 
-- `@ethersphere/bee-js` **13.0.0** (pinned exact, D10) — feeds, SOCs, uploads, stamps, the HTTP transport to a Bee node. Under D18 it backs the default transport only; a caller may supply its own, and D18 measures whether a `fetch` transport over core-sdk can replace it.
+- `@ethersphere/bee-js` **13.0.0** (pinned exact, D10) — an **optional peer** since D18 closed: it backs `dappdata/transport/bee-js`, for dapps that already ship it. The default transport does not use it, and the package root does not import it.
 - `@ethersphere/core-sdk` **0.1.1** (pinned exact, D10) — browser-safe primitives: `PrivateKey`, `Topic`, `FeedIndex`, SOC/CAC builders, `Stamper` for client-side stamping (D12). No network I/O.
 - `@noble/hashes`, `@noble/curves` — keccak, HMAC-SHA256 (the D15 KDF), PBKDF2, secp256k1 for feed signing. Small, audited, no native code.
 - `@scure/bip39` — mnemonic validation and seed derivation for the D21 mnemonic source. Added 2026-09-21 with Peter's agreement: without the wordlist a typo opens a different, empty folder, which a user reads as lost data.

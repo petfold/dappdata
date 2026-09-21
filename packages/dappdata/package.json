@@ -15,6 +15,10 @@
     "./envelope": {
       "types": "./dist/envelope/index.d.ts",
       "default": "./dist/envelope/index.js"
+    },
+    "./transport/bee-js": {
+      "types": "./dist/transport/http.d.ts",
+      "default": "./dist/transport/http.js"
     }
   },
   "files": [
@@ -28,15 +32,23 @@
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
-    "@ethersphere/bee-js": "13.0.0",
     "@ethersphere/core-sdk": "0.1.1",
     "@noble/curves": "^1.9.1",
     "@noble/hashes": "^1.8.0",
     "@scure/bip39": "^2.4.0"
   },
   "devDependencies": {
+    "@ethersphere/bee-js": "13.0.0",
     "@types/node": "^22.10.0",
     "typescript": "^5.7.0",
     "vitest": "^2.1.0"
+  },
+  "peerDependencies": {
+    "@ethersphere/bee-js": "13.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@ethersphere/bee-js": {
+      "optional": true
+    }
   }
 }

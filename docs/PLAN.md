@@ -63,7 +63,7 @@ See *Revision notes* at the end for what changed since the chat draft.
 
 **Out of scope for M0.** Funding flows, merge strategies beyond expect-index (D6), cross-dapp discovery, React bindings.
 
-**Deliverables.** `packages/dappdata` with the public API in `ARCHITECTURE.md` implemented; CI running unit and bee-factory tests; a `README` that shows the integration in under 15 lines.
+**Deliverables.** `packages/dappdata` with the public API in `ARCHITECTURE.md` implemented; CI running unit and bee-factory tests (`.github/workflows/ci.yml`: unit, typecheck and build on every push; the bee-factory job runs on demand, since the cluster takes minutes to warm up); a `README` that shows the integration in under 15 lines.
 
 **Gate.**
 - C1 is testable: the README example runs against bee-factory.
@@ -72,6 +72,8 @@ See *Revision notes* at the end for what changed since the chat draft.
 - D18 closes here: Phase 1 ships the `Transport` interface over bee-js 13 and measures a `fetch` transport on core-sdk; the gate records its size and names the default.
 
 **Size.** The plumbing exists in bee-js; expect the effort to go into the derivation edge cases and the envelope format.
+
+**Gate check, 2026-09-21 (run against bee-factory, Bee 2.8.2).** C1: the README example runs as an integration test on a real node and restores on a second, freshly derived instance (C2 in miniature). C5: an integration test reads the raw feed chunk off the node and finds ciphertext, with neither the value nor its keys in it, for both transports. D18 closed: the `fetch` transport is the default, bee-js is an optional peer behind `dappdata/transport/bee-js`. The run found two things the mocked tests could not: a chunk is unreadable for about a second after upload, and Bee answers "missing" and "unreadable" identically (T18) — the feed now serves its own last write from memory, and the conflict probe is documented as a positive signal only. **Remaining before the gate is recorded: Peter's sign-off, and D9's encryption reviewed against a second pair of eyes if he wants one.**
 
 **Progress, 2026-09-21.** `packages/dappdata` has `derive`, `entropy` (wallet and mnemonic), `siwe`, `envelope`, `transport` (bee-js, fetch, in-memory), `feed` and `slot`, with `DappData.connect` over them. 46 unit tests run against a mocked Bee, plus a typecheck and a build; the README example runs as a test, including the fresh-device restore (C2 in miniature). The v1 derivation is pinned by a golden vector. The D18 measurement is done and recorded in `DECISIONS.md`: the fetch transport is 120 lines and 26 KB gzipped against bee-js's 167 KB, so it becomes the default once it has passed the bee-factory run. Left for the gate: that integration run (a mainnet Bee holds port 1633 on this machine, so bee-factory needs it free), and C5 checked on a real node rather than in memory.
 

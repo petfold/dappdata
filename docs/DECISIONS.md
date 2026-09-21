@@ -57,8 +57,10 @@ Add new entries at the end. Do not renumber.
 **Numbers behind it.** Writes 15–70 ms on bee-factory, 0.3–1.7 s through a light node or gateway, tail to 12 s. Lookup reads 3–5 s p95. A stamping proxy adds no measurable latency.
 **Consequences.** The Phase 1 slot API has a per-slot index cache and a `hint` for the last known index; `set()` resolves when the upload is accepted, and a separate `synced` signal reports visibility. C3 in PLAN is met on mainnet with these rules.
 
+**Implementation note (2026-09-21, from the bee-factory run).** A chunk is not readable on the node that accepted it for about a second: `GET /chunks` answers 500 `read chunk failed` and the feed lookup 404, then both answer 200 (T18). The feed therefore serves the update this device just wrote from memory, so `get()` straight after `set()` returns the new value instead of nothing. It is also why the index cache is not an optimisation: a dapp that re-read the network after every write would show the user an empty folder for the first second.
+
 ## D6 — Multi-device write strategy
-**Status:** open — closes in Phase 4
+**Status:** open — closes in Phase 4. One limit is already known: the propagation window of T18 hides a foreign write for about a second, and no client-side check can see it. `expectIndex` catches everything outside that window; D19's per-device ranges are what close it.
 **Options.** (a) Read-before-write with retry and a conflict callback; (b) one feed per device plus a merge step on read; (c) a CRDT layer reusing swarm-collaborative-docs (Yjs over feeds).
 **Leaning.** (a) in M0: `set(value, { expectIndex })` fails with a typed conflict error when the feed has moved, and a `merge(local, remote)` callback lets the dapp resolve and retry. (c) is not built here: it is swarm-collaborative-docs with the D20 envelope and a D17 sub-key. Two devices editing one small list (swarmtyp's project list, PLAN Phase 5) is the first real test.
 **Consequences.** (b) changes the storage layout; decide before any adopter.
@@ -145,7 +147,7 @@ Feeds and SOCs work as documented: sequential feeds via `makeWriter(topic, signe
 **Consequences.** The `info` strings are part of the key and go into the v1 spec. THREATS T16. The `EntropySource` (D8, D21) stays the only place the seed enters.
 
 ## D18 — The Bee transport is supplied by the caller
-**Status:** decided (Peter, 2026-09-21): (a) ships, (b) is measured in Phase 1; the entry closes when that measurement picks the default.
+**Status:** closed 2026-09-21. (b) wins: the `fetch` transport is the default, bee-js is an optional peer behind `dappdata/transport/bee-js`.
 **Context.** D13 made the Bee endpoint an interface. The pin on bee-js 13 (D10) meets an ecosystem still on 12: swarm-collaborative-docs, most examples, the Swarm skill. A dapp that uses both would ship two bee-js majors from a Swarm address, where every byte is paid for on first load.
 **Options.** (a) bee-js 13 inside, plus a `Transport` interface (upload SOC with envelope, read feed update by index, look up latest, upload and download bytes) that a caller implements over its own bee-js instance. (b) No bee-js at all: core-sdk builds chunks and SOCs, `fetch` talks to the four Bee routes the SDK uses. (c) Status quo.
 **Decision.** (a) for Phase 1: bee-js 13 inside, behind a `Transport` interface (upload SOC with envelope, read feed update by index, look up latest, upload and download bytes) that a caller can implement over its own bee-js instance. Phase 1 also measures (b), a transport built on core-sdk and `fetch` over the four Bee routes the SDK uses: if it comes in under a few hundred lines it becomes the default and bee-js drops to a dev dependency. Record the line count and the bundle size in the Phase 1 gate.
@@ -157,7 +159,9 @@ Feeds and SOCs work as documented: sequential feeds via `makeWriter(topic, signe
 | bee-js (`transport.http`) | 693 KB | 167 KB |
 | fetch (`transport.fetch`) | 68 KB | 26 KB |
 
-Six and a half times smaller on the wire, on a page where the user pays for every byte of the first load. The condition in this decision is met, so (b) becomes the default and bee-js moves to an optional peer — **once the fetch transport has passed the bee-factory integration run**, which is the Phase 1 gate's job. Until then both ship and `transport.http` stays the documented default.
+Six and a half times smaller on the wire, on a page where the user pays for every byte of the first load.
+
+**Outcome (2026-09-21).** The fetch transport passed the bee-factory run: both transports write and read the same feeds, a feed written through bee-js reads back through `fetch`, C5 holds on the wire for both, and both handle the blob path. So (b) is the default. `transport.fetch(url)` is what `transport` exports; the bee-js transport moved to its own entry point, `dappdata/transport/bee-js`, and `@ethersphere/bee-js` is now an optional peer dependency rather than a dependency. Importing the package root pulls in 68 KB, 26 KB gzipped, with no bee-js in it. A dapp that already ships bee-js keeps using it and loses nothing.
 **Consequences.** `bee: { url }` becomes `transport: transport.http(url)` with `transport.custom(impl)` beside it. The bee-js pin (D10) then governs the default transport only.
 
 ## D19 — The stamper as a service, and bucket state under frequent writes

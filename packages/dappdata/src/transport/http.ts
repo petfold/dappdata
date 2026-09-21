@@ -1,15 +1,16 @@
-// The default transport: bee-js 13 against an HTTP Bee endpoint (D10, D18).
+// The bee-js transport, published as `dappdata/transport/bee-js` (D10, D18).
 //
-// Under D12 that endpoint holds no funds, so it can be the user's own node,
+// Use it when the dapp already ships bee-js, or wants bee-js to own the Bee
+// conversation. Otherwise `transport.fetch` does the same four operations in
+// 26 KB gzipped against this one's 167 KB. bee-js is an optional peer
+// dependency, so importing this module without it installed will fail loudly.
+//
+// Under D12 the endpoint holds no funds, so it can be the user's own node,
 // the dapp operator's, or any public node that allows the origin.
 import { Bee } from "@ethersphere/bee-js";
 import { EthAddress, FeedIndex, PrivateKey, Topic } from "@ethersphere/core-sdk";
+import { isNotFound, isUnreadableChunk } from "./missing.js";
 import type { FeedUpdate, GetFeedUpdate, PutFeedUpdate, Transport } from "./types.js";
-
-function isNotFound(error: unknown): boolean {
-  const e = error as { status?: number; message?: string } | undefined;
-  return e?.status === 404 || /not found|404/i.test(e?.message ?? "");
-}
 
 export interface HttpTransportOptions {
   /** A bee-js instance the dapp already has; otherwise the SDK makes one. */
@@ -33,7 +34,8 @@ export function http(url: string, options: HttpTransportOptions = {}): Transport
         const update = await reader.downloadPayload({ index: FeedIndex.fromBigInt(index) });
         return update.payload.toUint8Array();
       } catch (error) {
-        if (isNotFound(error)) return null;
+        // An index nobody has written is a failed chunk read, not a 404.
+        if (isNotFound(error) || isUnreadableChunk(error)) return null;
         throw error;
       }
     },
