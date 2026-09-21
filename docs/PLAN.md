@@ -1,8 +1,8 @@
 # Development plan
 
-Status: plan approved 2026-09-03. **Phase 0 gate: GO, drafted 2026-09-04, awaiting Peter's confirmation.**
+Status: plan approved 2026-09-03. **Phase 0 gate: GO, confirmed by Peter 2026-09-21.**
 
-**Go / no-go.** Go. The three risky assumptions held up. One wallet signature over a fixed EIP-712 message derives a stable storage key: deterministic across 20 signatures, page reloads and wallet restarts, identical in MetaMask and Rabby and in three signing libraries (S1). Someone can pay without the dapp running a server: a payer created a batch owned by the user's derived key, the derived key stamped writes in the client, a Bee node holding no funds accepted them from Node and from a browser page, and top-ups need no owner permission (S3). Latency suits interactive use once the SDK keeps the feed index: reads by index take 10–300 ms, first-time reads 2–5 s, and updates are visible across mainnet gateways in about 2 s (S2). Two findings shape Phase 1 more than expected: Bee's feed lookup costs 2–5 s everywhere, so the index cache is core rather than an optimisation; and a reused stamp slot destroys the earlier chunk on immutable batches too, so stamper state is part of the user's stored metadata from day one. Left open on purpose: Coinbase Wallet, WalletConnect and Ledger in the matrix (Phase 3), the mode A autobuy check (dropped with mode A), and a repeat of the slot-reuse test on mainnet (Phase 2). Decisions D1, D2, D8 closed; D3, D4, D5, D12, D13 closures drafted in `DECISIONS.md`.
+**Go / no-go.** Go. The three risky assumptions held up. One wallet signature over a fixed EIP-712 message derives a stable storage key: deterministic across 20 signatures, page reloads and wallet restarts, identical in MetaMask and Rabby and in three signing libraries (S1). Someone can pay without the dapp running a server: a payer created a batch owned by the user's derived key, the derived key stamped writes in the client, a Bee node holding no funds accepted them from Node and from a browser page, and top-ups need no owner permission (S3). Latency suits interactive use once the SDK keeps the feed index: reads by index take 10–300 ms, first-time reads 2–5 s, and updates are visible across mainnet gateways in about 2 s (S2). Two findings shape Phase 1 more than expected: Bee's feed lookup costs 2–5 s everywhere, so the index cache is core rather than an optimisation; and a reused stamp slot destroys the earlier chunk on immutable batches too, so stamper state is part of the user's stored metadata from day one. Left open on purpose: Coinbase Wallet, WalletConnect and Ledger in the matrix (Phase 3), the mode A autobuy check (dropped with mode A), and a repeat of the slot-reuse test on mainnet (Phase 2). Decisions D1, D2, D8, D10 closed 2026-09-03/04; D3, D4, D5, D12, D13 closed 2026-09-21.
 
 See *Revision notes* at the end for what changed since the chat draft.
 
@@ -40,7 +40,7 @@ See *Revision notes* at the end for what changed since the chat draft.
 
 **Gate.**
 - Go / no-go on the idea, written at the top of this file.
-- D1 (derivation message), D2 (wallet set and smart-account policy), D3 (default funding mode), D4 (batch type), D5 (latency thresholds), D8 (relation to swarm-id), D10 (bee-js pin), D12 (batch owner key and client-side stamping), D13 (browser-first) closed. Status 2026-09-04: D1, D2, D8, D10 closed; D3, D4, D5, D12, D13 drafted, awaiting Peter.
+- D1 (derivation message), D2 (wallet set and smart-account policy), D3 (default funding mode), D4 (batch type), D5 (latency thresholds), D8 (relation to swarm-id), D10 (bee-js pin), D12 (batch owner key and client-side stamping), D13 (browser-first) closed. Status 2026-09-21: all nine closed.
 - Gate outcome written back into IDEA-190 as a comment, so the canvas and the code do not drift.
 
 **Size.** Days per spike. S2 needs a Sepolia light node running for a day; start it first.
