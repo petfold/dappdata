@@ -87,6 +87,7 @@ export function http(url: string, options: HttpTransportOptions = {}): Transport
       return (await bee.data.download(reference)).toUint8Array();
     },
 
+    /** `/stamps` is what this node owns; a user-owned batch is in `/batches` (D12). */
     async getBatch(batchId: string): Promise<BatchStatus | null> {
       try {
         const batch = await bee.stamp.get(batchId);
@@ -98,6 +99,20 @@ export function http(url: string, options: HttpTransportOptions = {}): Transport
           immutable: batch.immutableFlag,
           utilization: batch.utilization,
           ttlSeconds: Number(batch.duration.toSeconds()),
+        };
+      } catch (error) {
+        if (!isNotFound(error)) throw error;
+      }
+      try {
+        const batch = await bee.stamp.getGlobal(batchId);
+        return {
+          batchId: batch.batchID.toHex(),
+          usable: batch.batchTTL > 0,
+          depth: batch.depth,
+          bucketDepth: batch.bucketDepth,
+          immutable: batch.immutable,
+          utilization: 0,
+          ttlSeconds: batch.batchTTL,
         };
       } catch (error) {
         if (isNotFound(error)) return null;

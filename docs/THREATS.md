@@ -43,7 +43,7 @@ An open stamping proxy lets anyone drain the dapp's batch.
 
 ### T8 — Batch expiry (funding mode B)
 The user's batch runs out; chunks are evicted; state is gone.
-**Mitigation.** `funding.health()` reports TTL; the SDK warns below a threshold; `topUp` is permissionless so the dapp or a sponsor can act without the user. **Status:** open until Phase 2.
+**Mitigation.** `funding.health()` reports TTL, computed from the postage contract rather than from the node, whose `batchTTL` was 400 times too long on Sepolia (gate run, 2026-09-21); the SDK warns below a threshold; `topUp` is permissionless so the dapp or a sponsor can act without the user. **Status:** open until Phase 2.
 **Note.** Permissionless `topUp` is not a griefing vector: extending someone's TTL costs the sponsor and helps the owner. `dilute` is owner-only.
 
 ### T9 — Mutable batch corrupts feeds
@@ -60,6 +60,7 @@ If D7 chooses a mapping feed, a third party who links the main address to the ma
 ### T12 — Lost or stale stamper state overwrites the user's own data
 A device with a blank or old `Stamper` bucket state reuses slots; the network replaces the earlier chunk and the node answers 201 (S3). Immutable batches do not prevent it (D4).
 **Mitigation.** D19: bucket state checkpointed to a reserved slot, restored before the first write on a new device, then advanced by a safety margin; the SDK stops at capacity rather than reuse. **Status:** open until D19 (Phase 2). Promised in D4's consequences on 2026-09-04; written here 2026-09-05.
+**Proven on Sepolia (2026-09-21).** Two devices sharing one checkpoint, stamping into one bucket, took disjoint slots; the run before the fix did not, and that interleaving is now a regression test (D19). The remaining hole is the slot-backed checkpoint store, which cannot stamp itself and so is not the default a user gets yet. **Status:** mitigated for a caller-supplied store; open until D19's lookahead lands.
 
 ### T13 — Signature encoding splits a user into two folders
 The same account signs the same message; one wallet reports `v` as 27, another as 0, or one emits high-`s`; `keccak256(sig)` differs and the user lands in an empty folder.

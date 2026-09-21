@@ -3,6 +3,7 @@ import { memory } from "../src/transport/memory.js";
 import { funding, sepolia, gnosis, BUCKET_DEPTH } from "../src/funding/index.js";
 import {
   BATCH_CREATED_TOPIC,
+  batchIdFor,
   encodeApprove,
   encodeCreateBatch,
   encodeTopUp,
@@ -20,7 +21,9 @@ interface Sent {
   data: string;
 }
 
-function mockChain(options: { allowance?: bigint } = {}): Eip1193Provider & { sent: Sent[] } {
+function mockChain(
+  options: { allowance?: bigint; emits?: string | null } = {},
+): Eip1193Provider & { sent: Sent[] } {
   const sent: Sent[] = [];
   return {
     sent,
@@ -37,7 +40,12 @@ function mockChain(options: { allowance?: bigint } = {}): Eip1193Provider & { se
           return "0xdeadbeef" + sent.length;
         }
         case "eth_getTransactionReceipt":
-          return { logs: [{ topics: [BATCH_CREATED_TOPIC, "0x" + BATCH] }] };
+          // `emits` null means a receipt with no BatchCreated log, which is
+          // what a node returns when it does not index them; the SDK then
+          // trusts the id it derived.
+          return options.emits === null
+            ? { logs: [] }
+            : { logs: [{ topics: [BATCH_CREATED_TOPIC, "0x" + (options.emits ?? BATCH)] }] };
         default:
           throw new Error(`unexpected ${method}`);
       }
@@ -58,8 +66,11 @@ describe("ABI encoding", () => {
     expect(selector("topUp(bytes32,uint256)")).toBe("b67644b9");
     expect(selector("createBatch(address,uint256,uint8,uint8,bytes32,bool)")).toBe("5239af71");
     expect(selector("remainingBalance(bytes32)")).toBe("d71ba7c4");
+    // The deployment emits the SEVEN-parameter event, without a payer. The
+    // eight-parameter signature in spikes/s3/src/modeb.mjs is wrong; the
+    // spike only worked because it read topics[1] positionally.
     expect(BATCH_CREATED_TOPIC).toBe(
-      "0xc56374a8e3361770343efe343883bf87efaeca24024afbba9062b88495f50f6e",
+      "0x9b088e2c89b322a3c1d81515e1c88db3d386d022926f0e2d0b9b5813b7413d58",
     );
     expect(encodeApprove("0x" + "11".repeat(20), 255n)).toBe(
       "0x095ea7b3" + "11".repeat(20).padStart(64, "0") + "ff".padStart(64, "0"),
@@ -86,15 +97,36 @@ describe("ABI encoding", () => {
   });
 });
 
+describe("the batch id is derived, not reported", () => {
+  it("matches what the chain created, on a real transaction", () => {
+    // From Sepolia tx 0xf5d60b9cf9b020ce8f0144f52bf8ab19c6b41eb3ff2f55c48b6acd01a9575981:
+    // this payer and this nonce produced exactly this batch, per the event.
+    expect(
+      batchIdFor(
+        "0x6f49CF1cE06E73649B1F07AFE46Cbb598Bc6f3Bc",
+        "0xd024cc037191c945ffa18ebaf567425806e6736f09f833cc65f243ce35307642",
+      ),
+    ).toBe("a71e685b7452dd6520e0ba894de9f622cd3183fc3eb2430b4940d307b6fb39b6");
+  });
+
+  it("depends on the payer, not the owner", () => {
+    const nonce = "0x" + "11".repeat(32);
+    expect(batchIdFor(PAYER, nonce)).not.toBe(batchIdFor(OWNER, nonce));
+  });
+});
+
+/** The nonce the SDK picked, read out of the createBatch call it sent. */
+const nonceOf = (data: string): string => "0x" + data.slice(10).match(/.{64}/g)![4];
+
 describe("fund (D3, D12, D23)", () => {
   it("buys an immutable batch owned by the user, paid by someone else", async () => {
-    const provider = mockChain();
+    const provider = mockChain({ emits: null });
     const result = await make(provider).fund({ owner: OWNER, depth: 20, amountPerChunk: 100n });
 
-    expect(result.batchId).toBe(BATCH);
+    const [approve, create] = provider.sent;
+    expect(result.batchId).toBe(batchIdFor(PAYER, nonceOf((create as Sent).data)));
     expect(result.totalCost).toBe(100n * 2n ** 20n);
 
-    const [approve, create] = provider.sent;
     expect(approve?.to).toBe(sepolia.bzzToken);
     expect(create?.to).toBe(sepolia.postageStamp);
     expect(create?.data).toContain(OWNER.slice(2)); // owner is the derived key
@@ -102,10 +134,17 @@ describe("fund (D3, D12, D23)", () => {
   });
 
   it("skips the approval when the allowance is already there", async () => {
-    const provider = mockChain({ allowance: 10n ** 30n });
+    const provider = mockChain({ allowance: 10n ** 30n, emits: null });
     await make(provider).fund({ owner: OWNER, depth: 20, amountPerChunk: 100n });
     expect(provider.sent).toHaveLength(1);
     expect(provider.sent[0]?.to).toBe(sepolia.postageStamp);
+  });
+
+  it("catches a chain that created a different batch than the one derived", async () => {
+    const provider = mockChain({ emits: "ff".repeat(32) });
+    await expect(
+      make(provider).fund({ owner: OWNER, depth: 20, amountPerChunk: 1n }),
+    ).rejects.toThrowError(/the chain created batch/);
   });
 
   it("refuses a mutable batch, and says why (D4)", async () => {
@@ -161,15 +200,58 @@ describe("health (D3, D23)", () => {
       ttlSeconds: 172_800,
     });
 
+    // The mock's eth_call returns a zero allowance word, so lastPrice reads 0
+    // and health falls back to the node's number, saying which it used.
     const health = await make(mockChain(), transport).health(BATCH);
     expect(health?.usable).toBe(true);
     expect(health?.daysLeft).toBe(2);
+    expect(health?.ttlSource).toBe("node");
     expect(health?.usage).toBeGreaterThan(0);
     expect(health?.immutable).toBe(true);
   });
 
   it("returns null for a batch the node has never heard of", async () => {
     expect(await make(mockChain()).health(BATCH)).toBeNull();
+  });
+});
+
+describe("health prefers the contract to the node (gate run, 2026-09-21)", () => {
+  it("computes the lifetime from remainingBalance and lastPrice", async () => {
+    const transport = memory();
+    transport.setBatch({
+      batchId: BATCH,
+      usable: true,
+      depth: 17,
+      bucketDepth: 16,
+      immutable: true,
+      utilization: 0,
+      ttlSeconds: 14_382_144, // what Bee said: 166 days, and wrong
+    });
+
+    // remainingBalance 420682097, lastPrice 59123 — the values the contract
+    // held during the gate run, which are 7115 blocks, 0.99 days at 12 s.
+    const chainReads = [420_682_097n, 59_123n];
+    let read = 0;
+    const provider = {
+      async request({ method }: { method: string }): Promise<unknown> {
+        if (method === "eth_requestAccounts") return [PAYER];
+        if (method === "eth_call") {
+          const value = chainReads[read++ % 2] as bigint;
+          return "0x" + value.toString(16).padStart(64, "0");
+        }
+        throw new Error(`unexpected ${method}`);
+      },
+    };
+
+    const health = await funding({
+      payer: provider,
+      chain: sepolia,
+      transport,
+      from: PAYER,
+    }).health(BATCH);
+
+    expect(health?.ttlSource).toBe("contract");
+    expect(health?.daysLeft).toBeCloseTo(0.99, 2);
   });
 });
 

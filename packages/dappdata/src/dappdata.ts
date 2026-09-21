@@ -170,12 +170,35 @@ export class DappData {
    */
   async stamper(
     batchId: string,
-    options: { depth: number; block?: number | undefined },
+    options: { depth: number; block?: number | undefined; store?: CheckpointStore | undefined },
   ): Promise<Stamper> {
+    return createStamper({
+      signer: this.#feedKey,
+      batchId,
+      depth: options.depth,
+      // A caller may keep the checkpoint itself — on disk, in a database, in
+      // another library's storage. Note that a store whose own writes are
+      // stamped by this stamper cannot work (D19); the slot-backed default
+      // below has that problem and is why `store` exists.
+      store: options.store ?? this.#slotCheckpointStore(batchId),
+      block: options.block,
+    });
+  }
+
+  /**
+   * The default checkpoint store: a reserved slot in the user's own folder,
+   * so a new device finds the state with nothing but the signature.
+   *
+   * Unfinished (D19): its own write needs a stamp, and taking that stamp from
+   * the stamper it checkpoints recurses. It works today only when the slot
+   * write is paid for some other way — a node holding the batch. A stamper
+   * with a caller-supplied `store` has no such problem.
+   */
+  #slotCheckpointStore(batchId: string): CheckpointStore {
     // A reserved slot name: the leading dot is not something a dapp would
     // choose, and the batch id keeps two batches apart.
     const slot = this.slot<StamperStateWire>(`.stamper/${batchId}`, { schema: 1 });
-    const store: CheckpointStore = {
+    return {
       async load() {
         const checkpoint = await slot.get();
         return checkpoint === null ? null : decodeState(checkpoint.value);
@@ -185,13 +208,6 @@ export class DappData {
         await slot.set(encodeState(state), { expectIndex: current?.index });
       },
     };
-    return createStamper({
-      signer: this.#feedKey,
-      batchId,
-      depth: options.depth,
-      store,
-      block: options.block,
-    });
   }
 
   /** The folder's encryption, for bytes the dapp keeps somewhere else (D20). */

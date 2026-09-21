@@ -1,0 +1,13 @@
+{
+  "name": "@dappdata/phase2-gate",
+  "private": true,
+  "type": "module",
+  "description": "The Phase 2 gate run: sign-in to funded-and-writing on Sepolia (PLAN, Funding flows)",
+  "scripts": {
+    "gate": "node src/gate.mjs"
+  },
+  "dependencies": {
+    "dappdata": "workspace:*",
+    "ethers": "^6.17.0"
+  }
+}

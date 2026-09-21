@@ -66,14 +66,34 @@ export const encodeTopUp = (batchId: string, amountPerChunk: bigint): string =>
 export const encodeRemainingBalance = (batchId: string): string =>
   "0x" + selector("remainingBalance(bytes32)") + bytes32Word(batchId);
 
-/** `BatchCreated(bytes32 indexed batchId, ...)`: the id is the first indexed topic. */
+export const encodeLastPrice = (): string => "0x" + selector("lastPrice()");
+
+/**
+ * `BatchCreated(bytes32 indexed batchId, …)` as the Sepolia contract actually
+ * emits it: **seven** parameters, with no `payer`. The eight-parameter version
+ * in `spikes/s3/src/modeb.mjs` does not match the deployment; S3 never noticed
+ * because it fell back to reading `topics[1]` positionally. Verified against
+ * tx 0xf5d60b9c… on 2026-09-21.
+ */
 export const BATCH_CREATED_TOPIC =
   "0x" +
-  hex(
-    keccak_256(
-      utf8.encode("BatchCreated(bytes32,uint256,uint256,address,address,uint8,uint8,bool)"),
-    ),
-  );
+  hex(keccak_256(utf8.encode("BatchCreated(bytes32,uint256,uint256,address,uint8,uint8,bool)")));
+
+const hexToBytes = (value: string): Uint8Array => {
+  const raw = value.replace(/^0x/, "");
+  const out = new Uint8Array(raw.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = Number.parseInt(raw.slice(i * 2, i * 2 + 2), 16);
+  return out;
+};
+
+/**
+ * The batch id is not news from the chain: the contract derives it as
+ * `keccak256(abi.encode(msg.sender, nonce))`, so the payer knows it before
+ * the transaction is even sent. Confirmed on Sepolia against tx 0xf5d60b9c…,
+ * whose BatchCreated topic matched this to the byte.
+ */
+export const batchIdFor = (payer: string, nonce: string): string =>
+  hex(keccak_256(hexToBytes(addressWord(payer) + bytes32Word(nonce))));
 
 export const decodeUint = (data: string): bigint => {
   const raw = data.replace(/^0x/, "");

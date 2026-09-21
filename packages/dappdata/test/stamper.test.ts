@@ -222,3 +222,87 @@ describe("a full batch stops rather than overwrite (D4)", () => {
     expect(box.state?.reserved.get(5)).toBe(2); // capacity, not the block size
   });
 });
+
+describe("a checkpoint cannot stamp itself (D19)", () => {
+  it("says so plainly instead of recursing for ever", async () => {
+    // A store whose own write is stamped by the stamper it checkpoints: each
+    // checkpoint chunk lands in a fresh bucket, which needs a reservation,
+    // which writes a checkpoint, which needs a reservation…
+    let stamper: Awaited<ReturnType<typeof createStamper>> | null = null;
+    let bucket = 100;
+    const recursive: CheckpointStore = {
+      async load() {
+        return null;
+      },
+      async save() {
+        // Stamping inside the save is what a slot-backed store does.
+        await stamper?.stamp(addressIn(bucket++, 1));
+      },
+    };
+
+    stamper = await createStamper({
+      signer: KEY,
+      batchId: BATCH,
+      depth: 24,
+      store: recursive,
+      block: 4,
+    });
+
+    await expect(stamper.stamp(addressIn(1, 1))).rejects.toThrowError(
+      /cannot be stamped by the stamper it checkpoints/,
+    );
+  });
+});
+
+describe("two devices sharing one checkpoint (D19, T12)", () => {
+  // The interleaving the Sepolia gate run of 2026-09-21 caught: the laptop
+  // reserves, the phone restores and extends, and then the laptop — still
+  // holding its own older view of the state — extends from a line that has
+  // already moved. Before the fix both spent bucket 4242 slot 4.
+  it("never hands out a slot the other device already took", async () => {
+    const shared = store();
+    const bucket = 4242;
+    const spentBy = (stamp: Uint8Array): string => {
+      const s = spent(stamp);
+      return `${s.bucket}/${s.slot}`;
+    };
+
+    const laptop = await createStamper({
+      signer: KEY,
+      batchId: BATCH,
+      depth: 20,
+      store: shared,
+      block: 4,
+    });
+    const laptopFirst = [];
+    for (let i = 0; i < 3; i++) laptopFirst.push(spentBy(await laptop.stamp(addressIn(bucket, i))));
+
+    const phone = await createStamper({
+      signer: KEY,
+      batchId: BATCH,
+      depth: 20,
+      store: shared,
+      block: 4,
+    });
+    const phoneSlots = [];
+    for (let i = 0; i < 3; i++) phoneSlots.push(spentBy(await phone.stamp(addressIn(bucket, 100 + i))));
+
+    // The laptop wakes up with a stale reservation line and writes again.
+    const laptopLater = [];
+    for (let i = 0; i < 2; i++)
+      laptopLater.push(spentBy(await laptop.stamp(addressIn(bucket, 200 + i))));
+
+    const all = [...laptopFirst, ...phoneSlots, ...laptopLater];
+    expect(new Set(all).size).toBe(all.length);
+  });
+
+  it("skips past a line another device reserved but did not spend", async () => {
+    const shared = store();
+    const first = await createStamper({ signer: KEY, batchId: BATCH, depth: 20, store: shared, block: 4 });
+    await first.stamp(addressIn(7, 1)); // reserves 4, spends 1
+
+    const second = await createStamper({ signer: KEY, batchId: BATCH, depth: 20, store: shared, block: 4 });
+    const slot = spent(await second.stamp(addressIn(7, 2)));
+    expect(slot.slot).toBeGreaterThanOrEqual(4); // not slot 1, which the first may yet use
+  });
+});

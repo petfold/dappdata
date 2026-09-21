@@ -24,16 +24,23 @@ import {
   type PutFeedUpdate,
   type Stamp,
   type Transport,
+  isStampSigner,
 } from "./types.js";
 
 const hex = (bytes: Uint8Array): string =>
   Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 
-/** Bee takes a batch id or a marshalled stamp, in different headers. */
-const stampHeader = (stamp: Stamp): Record<string, string> =>
-  typeof stamp === "string"
-    ? { "swarm-postage-batch-id": stamp }
-    : { "swarm-postage-stamp": hex(stamp.marshalled) };
+/**
+ * Bee takes a batch id, which asks the node to stamp, or a marshalled stamp
+ * in a different header. A stamper is asked to sign the address in hand.
+ */
+async function stampHeader(stamp: Stamp, chunkAddress: Uint8Array): Promise<Record<string, string>> {
+  if (typeof stamp === "string") return { "swarm-postage-batch-id": stamp };
+  if (isStampSigner(stamp)) {
+    return { "swarm-postage-stamp": hex(await stamp.sign(chunkAddress)) };
+  }
+  return { "swarm-postage-stamp": hex(stamp.marshalled) };
+}
 
 /** Sequential feeds: identifier = keccak256(topic ‖ index), index 8 bytes big-endian. */
 function feedIdentifier(topic: Uint8Array, index: bigint): Uint8Array {
@@ -76,11 +83,14 @@ export function fetchTransport(url: string, fetchImpl: typeof fetch = fetch): Tr
       const body = new Uint8Array([...soc.span.toUint8Array(), ...soc.payload.toUint8Array()]);
 
       const owner = key.publicKey().address().toHex();
+      // The stamp signs the chunk's own address, which only exists once the
+      // SOC is built, so the stamper is asked for it here and not before.
+      const headers = await stampHeader(stamp, soc.address.toUint8Array());
       const response = await ask(
         `/soc/${owner}/${identifier.toHex()}?sig=${soc.signature.toHex()}`,
         {
           method: "POST",
-          headers: { "content-type": "application/octet-stream", ...stampHeader(stamp) },
+          headers: { "content-type": "application/octet-stream", ...headers },
           body: body as BodyInit,
         },
       );
@@ -119,11 +129,23 @@ export function fetchTransport(url: string, fetchImpl: typeof fetch = fetch): Tr
     },
 
     async putBlob({ data, stamp }: { data: Uint8Array; stamp: Stamp }): Promise<string> {
+      if (isStampSigner(stamp)) {
+        // /bytes splits the data into chunks on the node, so the client never
+        // sees the addresses it would have to stamp. A blob therefore needs a
+        // node that holds the batch, until the SDK splits client-side itself.
+        throw new DappDataError(
+          "unsupported",
+          "a value too large for one chunk needs a node holding the batch: " +
+            "client-side stamping cannot cover chunks it never sees (D12, D19)",
+        );
+      }
       const response = await ask("/bytes", {
         method: "POST",
         headers: {
           "content-type": "application/octet-stream",
-          ...stampHeader(stamp),
+          ...(typeof stamp === "string"
+            ? { "swarm-postage-batch-id": stamp }
+            : { "swarm-postage-stamp": hex(stamp.marshalled) }),
           "swarm-encrypt": "true",
         },
         body: data as BodyInit,
@@ -139,25 +161,58 @@ export function fetchTransport(url: string, fetchImpl: typeof fetch = fetch): Tr
       return new Uint8Array(await response.arrayBuffer());
     },
 
+    /**
+     * `/stamps/{id}` lists the batches this node **owns**, and under D12 the
+     * node owns none of ours: the owner is the user's derived key. So ask
+     * `/stamps` first, for the utilization only a holder knows, and fall back
+     * to `/batches/{id}`, the node's view of the chain, which is where a
+     * user-owned batch actually shows up.
+     */
     async getBatch(batchId: string): Promise<BatchStatus | null> {
-      const response = await askMaybe(`/stamps/${batchId.replace(/^0x/, "")}`);
-      if (response === null) return null;
-      const batch = (await response.json()) as {
+      const id = batchId.replace(/^0x/, "");
+
+      const own = await askMaybe(`/stamps/${id}`);
+      if (own !== null) {
+        const batch = (await own.json()) as {
+          batchID: string;
+          usable: boolean;
+          depth: number;
+          bucketDepth: number;
+          immutableFlag: boolean;
+          utilization: number;
+          batchTTL: number;
+        };
+        return {
+          batchId: batch.batchID,
+          usable: batch.usable,
+          depth: batch.depth,
+          bucketDepth: batch.bucketDepth,
+          immutable: batch.immutableFlag,
+          utilization: batch.utilization,
+          ttlSeconds: batch.batchTTL,
+        };
+      }
+
+      const global = await askMaybe(`/batches/${id}`);
+      if (global === null) return null;
+      const batch = (await global.json()) as {
         batchID: string;
-        usable: boolean;
         depth: number;
         bucketDepth: number;
-        immutableFlag: boolean;
-        utilization: number;
+        immutable: boolean;
         batchTTL: number;
       };
       return {
         batchId: batch.batchID,
-        usable: batch.usable,
+        // The chain says it exists and still has value; that is what a
+        // client-side stamper needs. Utilization is unknown from here: only
+        // the node holding the batch counts chunks, and we count our own in
+        // the stamper's bucket state instead (D19).
+        usable: batch.batchTTL > 0,
         depth: batch.depth,
         bucketDepth: batch.bucketDepth,
-        immutable: batch.immutableFlag,
-        utilization: batch.utilization,
+        immutable: batch.immutable,
+        utilization: 0,
         ttlSeconds: batch.batchTTL,
       };
     },

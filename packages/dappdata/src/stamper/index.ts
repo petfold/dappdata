@@ -74,9 +74,16 @@ export async function createStamper(options: StamperOptions): Promise<Stamper> {
   // starts at that line rather than trying to guess how far the last one got.
   const used = new Map<number, number>(state.reserved);
 
+  let saving = false;
+
   const save = async (): Promise<void> => {
-    state = { ...state, generation: state.generation + 1 };
-    await options.store?.save(state);
+    saving = true;
+    try {
+      state = { ...state, generation: state.generation + 1 };
+      await options.store?.save(state);
+    } finally {
+      saving = false;
+    }
   };
 
   /** Reserve room in this bucket, leaving space for the checkpoint's own chunk. */
@@ -84,8 +91,35 @@ export async function createStamper(options: StamperOptions): Promise<Stamper> {
     const spent = used.get(bucket) ?? 0;
     if (spent < (state.reserved.get(bucket) ?? 0)) return;
 
-    const want = Math.min(spent + block, capacity);
-    if (want <= spent) {
+    if (saving) {
+      // A checkpoint that is stamped by this same stamper needs room that the
+      // checkpoint being written already covers. Extending here would write
+      // another checkpoint, which would need room, for ever. A store whose
+      // writes are stamped from this stamper must therefore keep a step of
+      // lookahead; see D19, "the checkpoint cannot stamp itself".
+      throw new DappDataError(
+        "unsupported",
+        `the stamper ran out of reserved slots in bucket ${bucket} while writing its own ` +
+          `checkpoint; a checkpoint store cannot be stamped by the stamper it checkpoints (D19)`,
+      );
+    }
+
+    // Another device may have reserved past us since we last looked, and our
+    // own copy of the state says nothing about that. Re-read before extending,
+    // or we hand out slots it has already taken — which is what the Sepolia
+    // gate run of 2026-09-21 caught: two devices both spent bucket 4242 slot 4.
+    const stored = await options.store?.load();
+    if (stored) {
+      state = mergeState(state, stored);
+      const line = state.reserved.get(bucket) ?? 0;
+      if ((used.get(bucket) ?? 0) < line) used.set(bucket, line);
+    }
+
+    const from = used.get(bucket) ?? 0;
+    if (from < (state.reserved.get(bucket) ?? 0)) return; // the merge made room
+
+    const want = Math.min(from + block, capacity);
+    if (want <= from) {
       throw new DappDataError(
         "too-large",
         `postage batch ${options.batchId} is full in bucket ${bucket} ` +

@@ -15,7 +15,20 @@ export interface FeedUpdate {
  * owner — the derived storage key — and any node will take it, funds or no
  * funds (D12, S3).
  */
-export type Stamp = string | { batchId: string; marshalled: Uint8Array };
+export type Stamp = string | { batchId: string; marshalled: Uint8Array } | StampSigner;
+
+/**
+ * A stamper the transport asks for a stamp once it knows the chunk address.
+ * A postage stamp signs one address, so it cannot be prepared in advance
+ * (D12, D19).
+ */
+export interface StampSigner {
+  batchId: string;
+  sign(chunkAddress: Uint8Array): Promise<Uint8Array>;
+}
+
+export const isStampSigner = (stamp: Stamp): stamp is StampSigner =>
+  typeof stamp !== "string" && typeof (stamp as StampSigner).sign === "function";
 
 export const stampBatchId = (stamp: Stamp): string =>
   typeof stamp === "string" ? stamp : stamp.batchId;

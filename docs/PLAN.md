@@ -101,6 +101,10 @@ See *Revision notes* at the end for what changed since the chat draft.
 - A second device restores stamper state and writes without reusing a slot, proven against bee-factory.
 - D19, D23 closed; D21's passkey half closed (D25); T12, T15 and T18 have a status.
 
+**Gate run, 2026-09-21: passes** (`spikes/phase2/RESULTS.md`, log in `spikes/phase2/results/`). On Sepolia, against Bee 2.8.2: a sponsor bought a batch owned by a key derived from a signature and holding nothing; the same call with a different signer had the user pay for their own; a slot was stamped by the owner key and uploaded to a node holding no batch, then read back by a freshly derived instance; two devices sharing one checkpoint took disjoint slots in one bucket; and the sponsor extended a batch it does not own, 24 h to 48 h. The run found five defects, all fixed with regression tests — the worst being that two devices *did* collide on the first attempt, because the stamper extended a reservation from its own stale copy of the state.
+
+**Not yet met, so the gate stays open:** D21's passkey half is unwritten, and D19's slot-backed checkpoint store cannot stamp itself, so `dd.stamper()` still needs a caller-supplied store. Both are named in the decisions. Peter closes D19 and D23.
+
 **Why before the demo.** The demo is only convincing if its writes are funded like a real deployment's, not hand-stamped from a dev batch.
 
 ---

@@ -17,10 +17,13 @@ import type { Eip1193Provider } from "../entropy/types.js";
 import type { Transport } from "../transport/types.js";
 import {
   BATCH_CREATED_TOPIC,
+  batchIdFor,
   decodeUint,
   encodeAllowance,
   encodeApprove,
   encodeCreateBatch,
+  encodeLastPrice,
+  encodeRemainingBalance,
   encodeTopUp,
 } from "./abi.js";
 import type { ChainConfig } from "./chains.js";
@@ -64,10 +67,15 @@ export interface Health {
   usable: boolean;
   ttlSeconds: number;
   daysLeft: number;
-  /** 0..1, as Bee sees it. */
+  /** 0..1, as Bee sees it; 0 for a batch this node does not hold (D12). */
   usage: number;
   depth: number;
   immutable: boolean;
+  /**
+   * Where the lifetime came from. The contract is authoritative: Bee's own
+   * `batchTTL` was 400 times too long on Sepolia (gate run, 2026-09-21).
+   */
+  ttlSource: "contract" | "node";
 }
 
 export interface FundingLink {
@@ -122,24 +130,32 @@ export function funding(options: FundingOptions): Funding {
   const receipt = async (hash: string): Promise<{ logs: Array<{ topics: string[] }> } | null> =>
     (await payer.request({ method: "eth_getTransactionReceipt", params: [hash] })) as never;
 
-  /** Wait for the transaction, then read the batch id out of BatchCreated. */
-  const batchIdOf = async (hash: string): Promise<string> => {
-    for (let attempt = 0; attempt < 60; attempt++) {
+  /**
+   * Wait for the transaction and check the chain agrees with the batch id we
+   * already computed. The id comes from `keccak256(abi.encode(payer, nonce))`,
+   * not from an event: parsing events means pinning an ABI to a deployment,
+   * and the deployed `BatchCreated` already differs from the one our S3 spike
+   * declared. The event is a cross-check here, never the source.
+   */
+  const confirm = async (hash: string, expected: string): Promise<void> => {
+    for (let attempt = 0; attempt < 90; attempt++) {
       const result = await receipt(hash);
       if (result) {
-        for (const log of result.logs ?? []) {
-          if (log.topics?.[0]?.toLowerCase() === BATCH_CREATED_TOPIC.toLowerCase()) {
-            return (log.topics[1] as string).replace(/^0x/, "");
-          }
-        }
-        throw new DappDataError(
-          "unsupported",
-          `transaction ${hash} carried no BatchCreated event; was it a createBatch?`,
+        const fromChain = (result.logs ?? []).find(
+          (log) => log.topics?.[0]?.toLowerCase() === BATCH_CREATED_TOPIC.toLowerCase(),
         );
+        const emitted = fromChain?.topics?.[1]?.replace(/^0x/, "").toLowerCase();
+        if (emitted && emitted !== expected.toLowerCase()) {
+          throw new DappDataError(
+            "unsupported",
+            `the chain created batch ${emitted}, not the ${expected} this SDK derived`,
+          );
+        }
+        return;
       }
       await new Promise((resolve) => setTimeout(resolve, 2_000));
     }
-    throw new DappDataError("unsupported", `transaction ${hash} was still pending after two minutes`);
+    throw new DappDataError("unsupported", `transaction ${hash} was still pending after three minutes`);
   };
 
   const quote = async (
@@ -194,6 +210,8 @@ export function funding(options: FundingOptions): Funding {
         await send(chain.bzzToken, encodeApprove(chain.postageStamp, total));
       }
 
+      const nonce = hexOfRandom32();
+      const batchId = batchIdFor(payerAddress, nonce);
       const transactionHash = await send(
         chain.postageStamp,
         encodeCreateBatch({
@@ -201,13 +219,14 @@ export function funding(options: FundingOptions): Funding {
           initialBalancePerChunk: amountPerChunk,
           depth,
           bucketDepth: BUCKET_DEPTH,
-          nonce: hexOfRandom32(),
+          nonce,
           immutable,
         }),
       );
+      await confirm(transactionHash, batchId);
 
       return {
-        batchId: await batchIdOf(transactionHash),
+        batchId,
         depth,
         amountPerChunk,
         totalCost: total,
@@ -231,16 +250,40 @@ export function funding(options: FundingOptions): Funding {
       return send(chain.postageStamp, encodeTopUp(batchId, amountPerChunk));
     },
 
+    /**
+     * How long the batch has left. The lifetime comes from the postage
+     * contract — `remainingBalance / lastPrice` blocks, times the chain's
+     * block time — because a node's own `batchTTL` cannot be trusted: on
+     * Sepolia it reported 166 days for a batch the contract gave 0.99 days
+     * (gate run, 2026-09-21). The node is still asked, for the flags only.
+     */
     async health(batchId: string): Promise<Health | null> {
       const batch = await transport.getBatch(batchId);
       if (batch === null) return null;
+
+      let ttlSeconds = batch.ttlSeconds;
+      let ttlSource: "contract" | "node" = "node";
+      try {
+        const [remaining, price] = await Promise.all([
+          call(chain.postageStamp, encodeRemainingBalance(batchId)).then(decodeUint),
+          call(chain.postageStamp, encodeLastPrice()).then(decodeUint),
+        ]);
+        if (price > 0n) {
+          ttlSeconds = Number((remaining * BigInt(chain.blockSeconds)) / price);
+          ttlSource = "contract";
+        }
+      } catch {
+        // No chain access: fall back to what the node said, and say so.
+      }
+
       return {
-        usable: batch.usable,
-        ttlSeconds: batch.ttlSeconds,
-        daysLeft: batch.ttlSeconds / 86_400,
+        usable: batch.usable && ttlSeconds > 0,
+        ttlSeconds,
+        daysLeft: ttlSeconds / 86_400,
         usage: getStampUsage(batch.utilization, batch.depth, batch.bucketDepth),
         depth: batch.depth,
         immutable: batch.immutable,
+        ttlSource,
       };
     },
 

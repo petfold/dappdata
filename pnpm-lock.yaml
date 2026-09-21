@@ -36,6 +36,15 @@ importers:
         specifier: ^2.1.0
         version: 2.1.9(@types/node@22.20.4)
 
+  spikes/phase2:
+    dependencies:
+      dappdata:
+        specifier: workspace:*
+        version: link:../../packages/dappdata
+      ethers:
+        specifier: ^6.17.0
+        version: 6.17.0
+
   spikes/s1:
     dependencies:
       '@ethersphere/core-sdk':
