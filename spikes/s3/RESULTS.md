@@ -17,6 +17,8 @@ There is no sBZZ faucet. The Swarm docs point at a Uniswap swap in testnet mode.
 2. Price on the day: 0.01 sETH ≈ 0.051 sBZZ.
 3. The node's own sETH was moved to a throwaway swap key with Bee's `POST /wallet/withdraw/NativeToken?address=&amount=` after whitelisting the address in `config.yaml` (`withdrawal-addresses-whitelist`) and restarting. Tx `0xf7fa39e2c5cd4637f633a3adc5d86df0fab532bbe0096e8aad90d38323610a9d`, 0.03 sETH.
 4. Swap 0.025 sETH → 0.1276 sBZZ, recipient the node wallet `0x13cB9947C508cf52a233a1E97d80Dd2485589481`. Tx `0x30286c3799cae955adc87d5bdd2cd7fd62f1a830ae86959f45b9c279578a3f2f`, 129 319 gas.
+5. **Topped up for Phase 2 (2026-09-21).** The rate had not moved in eighteen days: 0.01 sETH → 0.0510 sBZZ, and the pool takes 0.1 sETH with 0.2 % price impact. Withdrew 0.11 sETH from the node to the swap key (tx `0xac1b836d…83c0`), then swapped 0.1 sETH → **0.5088 sBZZ** delivered to the swap key (tx `0x9b8334e1…54c0a`, 112 267 gas). The sBZZ sits with the *payer* now, not the node: under D12 the node holds no batch, and it is the payer who needs BZZ. Balances after: node `0x13cB…9481` 0.0991 sETH / 0.0659 sBZZ, payer `0x6f49…f3Bc` 0.0215 sETH / 0.5252 sBZZ.
+6. **Still no faucet** (checked 2026-09-21). `faucet.ethswarm.org` no longer resolves, and the Swarm docs name Uniswap as the only route to sBZZ. Sepolia ETH comes from the usual faucets via faucetlink.to/sepolia.
 
 Gotchas: Tenderly's public Sepolia RPC rate-limits this machine hard once the Bee node is using it too (429 on the node's withdraw and on the swap script). `ethereum-sepolia-rpc.publicnode.com` worked for both, but the node's log listener reportedly 429s on `eth_getLogs` there, so the node is back on Tenderly and scripts default to publicnode.
 
