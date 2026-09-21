@@ -1,6 +1,6 @@
 # Development plan
 
-Status: plan approved 2026-09-03. **Phase 0 gate: GO, confirmed by Peter 2026-09-21.**
+Status: plan approved 2026-09-03. **Phase 0 gate: GO, confirmed by Peter 2026-09-21. Phase 1 gate: passed, signed off by Peter 2026-09-21. Phase 2 started.**
 
 **Go / no-go.** Go. The three risky assumptions held up. One wallet signature over a fixed EIP-712 message derives a stable storage key: deterministic across 20 signatures, page reloads and wallet restarts, identical in MetaMask and Rabby and in three signing libraries (S1). Someone can pay without the dapp running a server: a payer created a batch owned by the user's derived key, the derived key stamped writes in the client, a Bee node holding no funds accepted them from Node and from a browser page, and top-ups need no owner permission (S3). Latency suits interactive use once the SDK keeps the feed index: reads by index take 10–300 ms, first-time reads 2–5 s, and updates are visible across mainnet gateways in about 2 s (S2). Two findings shape Phase 1 more than expected: Bee's feed lookup costs 2–5 s everywhere, so the index cache is core rather than an optimisation; and a reused stamp slot destroys the earlier chunk on immutable batches too, so stamper state is part of the user's stored metadata from day one. Left open on purpose: Coinbase Wallet, WalletConnect and Ledger in the matrix (Phase 3), the mode A autobuy check (dropped with mode A), and a repeat of the slot-reuse test on mainnet (Phase 2). Decisions D1, D2, D8, D10 closed 2026-09-03/04; D3, D4, D5, D12, D13 closed 2026-09-21.
 
@@ -73,7 +73,11 @@ See *Revision notes* at the end for what changed since the chat draft.
 
 **Size.** The plumbing exists in bee-js; expect the effort to go into the derivation edge cases and the envelope format.
 
-**Gate check, 2026-09-21 (run against bee-factory, Bee 2.8.2).** C1: the README example runs as an integration test on a real node and restores on a second, freshly derived instance (C2 in miniature). C5: an integration test reads the raw feed chunk off the node and finds ciphertext, with neither the value nor its keys in it, for both transports. D18 closed: the `fetch` transport is the default, bee-js is an optional peer behind `dappdata/transport/bee-js`. The run found two things the mocked tests could not: a chunk is unreadable for about a second after upload, and Bee answers "missing" and "unreadable" identically (T18) — the feed now serves its own last write from memory, and the conflict probe is documented as a positive signal only. **Remaining before the gate is recorded: Peter's sign-off, and D9's encryption reviewed against a second pair of eyes if he wants one.**
+**Gate: passed, signed off by Peter 2026-09-21.** The checks below all hold; the decisions this phase owned are closed; `packages/dappdata` is the M0 SDK. Phase 2 may start.
+
+**Gate check, 2026-09-21 (run against bee-factory, Bee 2.8.2).** C1: the README example runs as an integration test on a real node and restores on a second, freshly derived instance (C2 in miniature). C5: an integration test reads the raw feed chunk off the node and finds ciphertext, with neither the value nor its keys in it, for both transports. D18 closed: the `fetch` transport is the default, bee-js is an optional peer behind `dappdata/transport/bee-js`. The run found two things the mocked tests could not: a chunk is unreadable for about a second after upload, and Bee answers "missing" and "unreadable" identically (T18) — the feed now serves its own last write from memory, and the conflict probe is documented as a positive signal only. Both halves are reported upstream (ethersphere/bee#5624, ethersphere/bee-js#1263).
+
+**Carried into later phases, named so they are not lost.** D9's encryption has had no second pair of eyes; the Phase 4 review is where that belongs. D14's API half is settled by the shipped surface, its adapter half waits for the Phase 3 demo. D21's passkey half and D20's public envelope module are Phase 2 and Phase 4 as planned. The T18 window stays open until D19.
 
 **Progress, 2026-09-21.** `packages/dappdata` has `derive`, `entropy` (wallet and mnemonic), `siwe`, `envelope`, `transport` (bee-js, fetch, in-memory), `feed` and `slot`, with `DappData.connect` over them. 46 unit tests run against a mocked Bee, plus a typecheck and a build; the README example runs as a test, including the fresh-device restore (C2 in miniature). The v1 derivation is pinned by a golden vector. The D18 measurement is done and recorded in `DECISIONS.md`: the fetch transport is 120 lines and 26 KB gzipped against bee-js's 167 KB, so it becomes the default once it has passed the bee-factory run. Left for the gate: that integration run (a mainnet Bee holds port 1633 on this machine, so bee-factory needs it free), and C5 checked on a real node rather than in memory.
 
@@ -83,20 +87,19 @@ See *Revision notes* at the end for what changed since the chat draft.
 
 **Goal.** Writes get paid for the way a deployed dapp would pay for them.
 
-**Work.**
-- **Mode A, proxy.** A `funding.proxy(url)` adapter that routes writes through a gateway-proxy deployment; `infra/proxy/` holds a working config against bee-factory and against a Sepolia node.
-- **Mode B, sponsored batch.** A `funding.batch()` adapter: the user owns an immutable batch; helpers for purchase, `topUp` by a sponsor address, and TTL monitoring with a warning threshold.
-- Both adapters behind one `Funding` interface so the dapp changes one line to switch.
-- **Stamper as a service (D19).** `stamper(batchId)` for other libraries; bucket state checkpointed to a reserved slot, restored and advanced on a new device; a test that a second device never reuses a slot.
-- **Granularity (D23).** `fund()` sizes a batch from a declared write budget; `health()` reports days left; `docs/FUNDING.md` says plainly that each app brings its own batch.
+**Work.** *(Rewritten 2026-09-21: D3 closed with no stamping proxy in the SDK, so the two-adapter shape this section used to describe is gone. One funding path, one `Funding` interface.)*
+- **One path: the user owns the batch, anyone pays (D3, D12).** `funding.fund()` calls `createBatch(owner = the derived storage key)` from whatever payer the dapp supplies — the user's wallet, the operator's key, a sponsor — and `funding.topUp()` extends any batch without the owner's permission. The same code either way.
+- **Health and warning (D3, D23).** `funding.health(batch)` turns TTL into days left and a `usable` flag; the SDK warns below a threshold; writes queue while a fresh batch is not yet usable, about two minutes on Sepolia.
+- **Granularity (D23).** `fund()` sizes depth and amount from a declared write budget (writes per day, retention days) including the D19 safety margin; `docs/FUNDING.md` says plainly that each app brings its own batch and that a sponsor can top up any of them.
+- **Stamper as a service (D19).** `stamper(batchId)` for the SDK and for other libraries; bucket state checkpointed to a reserved slot, restored and advanced past a safety margin on a new device; a test that a second device never reuses a slot. This is also what closes T18's write-write window.
 - **Passkey entropy source (D21, D25).** `entropy.passkey()` over WebAuthn PRF, with an evaluation of PRF-only derivation against PRF unlocking an encrypted seed kept on Swarm; the choice closes D21's passkey half.
 
-**Deliverables.** Both modes runnable from a script, on bee-factory and on Sepolia. A short `docs/FUNDING.md` for dapp developers: which mode, when, and what it costs.
+**Deliverables.** Sign-in to funded-and-writing runnable from a script, on bee-factory and on Sepolia, with the payer a different key from the owner. A short `docs/FUNDING.md` for dapp developers: who pays, what it costs, and what the user is left holding.
 
 **Gate.**
-- C4: both modes demonstrated end to end on Sepolia.
-- Proxy abuse controls from `THREATS.md` (T7) are in the proxy config, not left as advice.
-- D19, D23 closed; D21's passkey half closed (D25); T12 and T15 have a status.
+- C4: user-pays and sponsor-pays both demonstrated end to end on Sepolia, through one code path.
+- A second device restores stamper state and writes without reusing a slot, proven against bee-factory.
+- D19, D23 closed; D21's passkey half closed (D25); T12, T15 and T18 have a status.
 
 **Why before the demo.** The demo is only convincing if its writes are funded like a real deployment's, not hand-stamped from a dev batch.
 
