@@ -28,7 +28,7 @@ One wallet signature at sign-in yields a storage identity. State lives in feeds 
 
 **The message (D1, from S1).** Domain `{ name: "dappdata", version: "1" }` with **no `chainId`**: a chain-bound domain would make the key depend on the chain the wallet happens to be on. Primary type `DappDataKey` with four string-ish fields: `purpose` ("Derive dappdata storage key"), `account`, `app`, `scope` ("v1"). `app` is the browser origin unless the dapp declares a stable identity because it is served from a Swarm gateway *(D16; D1 named this field `origin`)*. Wallets show these as labelled fields, so a user can spot a wrong app. Reference implementation: `spikes/s1/src/derive.ts`.
 
-**Fallback (D1).** If the wallet lacks `eth_signTypedData_v4`, the SDK signs the same fields as plain text with `personal_sign`. That yields a different key, so on restore the SDK reads under the typed-data key first and then under the fallback key, and writes with the method it read with. Rare in practice: both wallets tested support typed data.
+**Typed data required (D1, amended 2026-09-22).** A wallet that cannot sign `eth_signTypedData_v4` gets a typed `unsupported` error before any prompt; every current wallet can, and over WalletConnect the dapp lists the method among its optional methods. The `personal_sign` fallback survives only as an explicit opt-in, `entropy.wallet(provider, { personalSignFallback: true })`, and opens a different folder, which the dapp that enables it owns. Its text and digest stay in `derive/` with their golden vectors.
 
 **Provider.** The dapp passes an EIP-1193 provider; the SDK never reads `window.ethereum`. Several wallet extensions in one browser fight over that global, and EIP-6963 is the discovery path dapps already use.
 

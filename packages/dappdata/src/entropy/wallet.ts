@@ -10,6 +10,15 @@ export interface WalletSourceOptions {
   account?: string | undefined;
   /** Skip the contract-account check when the dapp has already done it. */
   skipAccountCheck?: boolean | undefined;
+  /**
+   * Accept a wallet that cannot sign typed data and derive from a
+   * `personal_sign` signature instead. Off by default (D1, amended
+   * 2026-09-22): the fallback opens a *different* folder from the typed-data
+   * key, and every current wallet signs typed data, so the default is to
+   * refuse with a typed error rather than split a user's data in two. A dapp
+   * that turns this on must tell its users that the folder is separate.
+   */
+  personalSignFallback?: boolean | undefined;
 }
 
 const utf8 = new TextEncoder();
@@ -47,10 +56,18 @@ export function wallet(provider: Eip1193Provider, options: WalletSourceOptions =
         };
       } catch (error) {
         if (!isMethodMissing(error)) throw error;
+        if (!options.personalSignFallback) {
+          throw new DappDataError(
+            "unsupported",
+            "this wallet does not sign typed data (eth_signTypedData_v4), which dappdata needs " +
+              "to derive one key per account; every current wallet does, and over WalletConnect " +
+              "the dapp must list the method among its optional methods (D1)",
+          );
+        }
       }
 
-      // D1 fallback. It yields a different key, so a restore reads under the
-      // typed-data key first and then under this one.
+      // The opt-in fallback. It yields a different key and so a different
+      // folder; the dapp that enables it owns that consequence (D1).
       const signature = (await provider.request({
         method: "personal_sign",
         params: [hexOf(fallbackText(account, ctx.app)), account],

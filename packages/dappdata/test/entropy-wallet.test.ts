@@ -63,9 +63,17 @@ describe("the wallet source (D1, D2, D21, D25)", () => {
     expect(provider.asked).toContain("eth_getCode");
   });
 
-  it("falls back to personal_sign, and that key differs (D1)", async () => {
+  it("refuses a wallet without typed data unless the dapp opts into the fallback (D1)", async () => {
+    await expect(wallet(mockWallet({ typedData: "missing" })).secret({ app: APP })).rejects.toThrowError(
+      /does not sign typed data/,
+    );
+  });
+
+  it("with the opt-in, falls back to personal_sign, and that key differs (D1)", async () => {
     const typed = await wallet(mockWallet()).secret({ app: APP });
-    const fallback = await wallet(mockWallet({ typedData: "missing" })).secret({ app: APP });
+    const fallback = await wallet(mockWallet({ typedData: "missing" }), {
+      personalSignFallback: true,
+    }).secret({ app: APP });
 
     expect(fallback.method).toBe("personal_sign");
     expect(bytesToHex(fallback.secret)).not.toBe(bytesToHex(typed.secret));
