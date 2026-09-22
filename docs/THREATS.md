@@ -28,6 +28,7 @@ Anyone can read a public feed if they know owner and topic.
 ### T4 — Key loss
 The user loses the wallet, or the derivation message changes.
 **Accepted, with duties.** No recovery exists and none is planned: a recovery path is a second key, and a second key is a second attack surface. The SDK docs say so in the first paragraph; the SDK gives the dapp a hook to show the warning. The derivation message carries a `scope` version so a deliberate change gets a migration path (Phase 4) instead of orphaning state.
+**Passkeys (D21, 2026-09-22).** A passkey lost with its device ecosystem is the folder lost, and passkeys do not sync across ecosystems, so an iCloud passkey and a Google one open two folders. The SDK says so; the way to make them one folder, and to survive a lost passkey with a second one, is the wrapped folder seed of D28.
 
 ### T5 — Stale or reordered state
 Eventual consistency serves an older feed update; a device acts on it.
@@ -73,7 +74,8 @@ With app binding (D16) a phishing site can put the real dapp's `app` value in it
 
 ### T15 — Shared origin on a Swarm gateway
 On a path-based gateway every app shares one origin. Keys stay in memory and are safe; anything the SDK caches locally (feed index cache, stamper bucket state) can be read or altered by another app on the same gateway. Altered stamper state could point the SDK at used slots (T12); a poisoned index cache yields stale reads.
-**Mitigation.** Local caches are hints: the slot checkpoint wins over the local stamper cache and buckets never move backwards; a stale index is caught by read-latest on a miss. The Phase 3 integration guide recommends subdomain gateways to Swarm-hosted dapps. **Status:** open until D19.
+**Mitigation.** Local caches are hints: the slot checkpoint wins over the local stamper cache and buckets never move backwards; a stale index is caught by read-latest on a miss. The Phase 3 integration guide recommends subdomain gateways to Swarm-hosted dapps. **Status:** mitigated for the stamper by D19's slot checkpoint (2026-09-22); the cache half stays as described.
+**Passkeys on a shared origin (D21, 2026-09-22).** A passkey belongs to the relying-party domain, so on a path-based gateway it is the gateway's passkey, shared by every dapp there, and a PRF prompt shows the user nothing to read: a co-hosted dapp can request the same PRF output silently and derive any other dapp's seed on that gateway, since the app id is public. The wallet prompt at least shows the `app` field (T1); PRF has no equivalent. Subdomain gateways, or a declared identity the dapp controls, are the remedy; the integration guide says so.
 
 ### T16 — A sub-key leaks
 A dapp holds a D17 sub-key in memory and loses it to XSS or a bad dependency.

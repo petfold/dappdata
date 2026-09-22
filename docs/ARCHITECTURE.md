@@ -50,7 +50,7 @@ The derivation message binds the app identity (D16), so each dapp gets its own f
 
 **What the dapp sees.** The derived address, so it can build feed references. Never `feedKey` or `encKey` directly; the SDK signs and decrypts internally. `encKey` is imported into WebCrypto as non-extractable. `feedKey` has to be used by a secp256k1 signer, so it stays a plain in-memory value with the shortest lifetime the session allows. Sub-keys are the exception *(D17)*: `deriveKey(purpose)` returns a key the dapp may hand to another library; it cannot reach the folder keys.
 
-**Smart accounts (D2, D25).** ERC-1271 wallets and passkey wallets cannot produce a deterministic secp256k1 signature. The SDK checks `eth_getCode` before asking for a signature and refuses a contract account with a typed error the dapp can show. One exception *(D25)*: an EIP-7702 upgraded EOA returns the 23-byte delegation designator `0xef0100 ‖ address`; it still signs with its own key, so the SDK treats that code as an EOA. The seed comes in through an `EntropySource` interface (D8) whose default is the wallet signature. D21 adds a mnemonic source in Phase 1 and a passkey source over WebAuthn PRF in Phase 2 *(D25)*, the way in for passkey-only accounts and wallet-less users; every source passes through the same app binding. Embedded wallets (Privy, Dynamic, Magic) are EOAs and need no special path, pending a determinism check in Phase 3.
+**Smart accounts (D2, D25).** ERC-1271 wallets and passkey wallets cannot produce a deterministic secp256k1 signature. The SDK checks `eth_getCode` before asking for a signature and refuses a contract account with a typed error the dapp can show. One exception *(D25)*: an EIP-7702 upgraded EOA returns the 23-byte delegation designator `0xef0100 ‖ address`; it still signs with its own key, so the SDK treats that code as an EOA. The seed comes in through an `EntropySource` interface (D8) whose default is the wallet signature. D21 adds a mnemonic source (Phase 1) and `entropy.passkey()` over WebAuthn PRF (landed 2026-09-22, *D25*): a discoverable credential whose PRF output over the fixed salt `sha256("dappdata/prf/v1")` is the secret, created on first use, refused with a typed error when the authenticator has no PRF. Every source passes through the same app binding. A passkey is one folder per passkey; the wrapped folder seed that makes several passkeys or several smart-account owners one folder is D28. How smart accounts come in is D2's note of 2026-09-22. Embedded wallets (Privy, Dynamic, Magic) are EOAs and need no special path, pending a determinism check in Phase 3.
 
 ## Storage layout
 
@@ -125,7 +125,7 @@ The SDK encodes the four contract calls itself — `allowance`, `approve`, `crea
 
 ```
 packages/dappdata/src/
-  entropy/     wallet, mnemonic, later passkey sources     (written, D21)
+  entropy/     wallet, mnemonic, passkey sources           (written, D21)
   derive/      derivation message, HMAC KDF, folder keys, sub-keys (written, D15, D16, D17, D21)
   envelope/    frame, encrypt, inline-vs-ref; pure, any key  (written, D20, D22)
   transport/   Bee routes behind an interface; fetch default, bee-js optional (written, D18)
@@ -145,7 +145,7 @@ which are Phase 2. `packages/dappdata` matches this shape today.
 import { DappData, entropy, transport } from "dappdata";
 
 const dd = await DappData.connect({
-  entropy: entropy.wallet(provider),          // EIP-1193, already signed in with SIWE; or entropy.mnemonic(words) (D21)
+  entropy: entropy.wallet(provider),          // EIP-1193, already signed in with SIWE; or entropy.mnemonic(words), entropy.passkey() (D21)
   app: { id: window.location.origin },        // or a declared identity for a Swarm-hosted dapp (D16)
   transport: transport.fetch("https://bee.example.org"),  // the default (D18); or dappdata/transport/bee-js, transport.custom(impl)
   stamp: batchId,                             // Phase 1: the caller supplies a batch; dd.funding lands in Phase 2

@@ -5,10 +5,15 @@
   "description": "The Phase 2 gate run: sign-in to funded-and-writing on Sepolia (PLAN, Funding flows)",
   "scripts": {
     "gate": "node src/gate.mjs",
-    "d19": "node src/d19.mjs"
+    "d19": "node src/d19.mjs",
+    "passkey:bundle": "esbuild passkey/web/entry.ts --bundle --format=esm --target=es2022 --outfile=passkey/web/passkey.js",
+    "passkey": "pnpm passkey:bundle && node passkey/run.mjs"
   },
   "dependencies": {
     "dappdata": "workspace:*",
     "ethers": "^6.17.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
   }
 }

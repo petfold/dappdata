@@ -12,6 +12,7 @@ spikes/**/secrets*
 
 # spike build output
 spikes/*/web/*.js
+spikes/**/web/*.js
 
 # stamper checkpoints written by gate runs (device state, not evidence)
 spikes/phase2/results/stamper-*.json

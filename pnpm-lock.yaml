@@ -44,6 +44,10 @@ importers:
       ethers:
         specifier: ^6.17.0
         version: 6.17.0
+    devDependencies:
+      esbuild:
+        specifier: ^0.25.0
+        version: 0.25.12
 
   spikes/s1:
     dependencies:
