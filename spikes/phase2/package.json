@@ -4,7 +4,8 @@
   "type": "module",
   "description": "The Phase 2 gate run: sign-in to funded-and-writing on Sepolia (PLAN, Funding flows)",
   "scripts": {
-    "gate": "node src/gate.mjs"
+    "gate": "node src/gate.mjs",
+    "d19": "node src/d19.mjs"
   },
   "dependencies": {
     "dappdata": "workspace:*",

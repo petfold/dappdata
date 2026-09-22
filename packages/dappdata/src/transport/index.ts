@@ -8,6 +8,7 @@ export type {
 } from "./types.js";
 export { isStampSigner, stampBatchId } from "./types.js";
 export { fetchTransport as fetch } from "./fetch.js";
+export type { FetchTransportOptions } from "./fetch.js";
 export { memory } from "./memory.js";
 
 // The bee-js transport lives behind its own entry point, `dappdata/transport/bee-js`,

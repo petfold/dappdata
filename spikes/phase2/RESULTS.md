@@ -48,3 +48,44 @@ Five defects, none of which the mocked tests could have caught. Each is fixed an
 - **D21's passkey half** (`entropy.passkey()` over WebAuthn PRF) is not written.
 - **The slot-backed checkpoint store cannot stamp itself** (D19). A checkpoint written through the stamper it checkpoints needs a slot, which needs a checkpoint, for ever; the stamper now raises a typed error instead of recursing. This run used a file-backed store, which is why it passed. The fix is a step of lookahead — the checkpoint reserves the slot its own next write will need — and it is the last piece of D19.
 - **D19 and D23 are Peter's to close**, with the revision recorded in `DECISIONS.md`.
+
+---
+
+# D19 closure run — 2026-09-22
+
+Script `src/d19.mjs`, log `results/d19-live.log`; the visibility follow-ups are `src/visibility.mjs` and `src/hitmiss.mjs` with their logs beside it. Same Sepolia writer node (Bee 2.8.2, light, `:1643`), same payer key. One depth-20 batch, `7148d39d…`, 0.0435 sBZZ for a day, usable 103 s after the transaction. **Result: the slot-backed checkpoint store works as the default, and the two-device test collided, for a reason that is now measured and is not the stamper's.**
+
+## What worked
+
+- **A stamper with no store supplied** wrote three slot updates and three stamps into one bucket, and checkpointed itself into the slot `.stamper/<batchId>` of the same folder, stamped by itself: feed index 3, generation 4, nine buckets reserved (three data chunks, three checkpoint chunks, the test bucket, and the lookahead). No recursion, no caller-supplied store, nothing on disk.
+- **A fresh instance restored it from the network** with nothing but the phrase, and took slots 4, 5, 6 in the shared bucket, above the laptop's published line of 4. This is the T12 restore, through Swarm, end to end.
+
+## What collided, and why
+
+The laptop then woke up and stamped 3, **4, 5**: slot 3 was its own, but 4 and 5 were the phone's. Its re-read of the checkpoint feed before extending did not see the phone's checkpoint, written some seconds earlier through the same node, so it extended from its own stale line and wrote its checkpoint over the phone's at the same feed index. And the deliberately simultaneous extension in bucket 777 collided too (both took slot 0), which is the race inside the window that D6 already accepts.
+
+The re-read missed because of how long a write takes to become readable **through the very node that accepted it**. Measured with two instances of the SDK on one node, one writing and one polling a read by index every 250 ms:
+
+| Upload mode on `POST /soc` | Write returns | Visible to the other instance | n |
+|---|---|---|---|
+| direct (Bee's default for `/soc`), chequebook empty | 300–550 ms | **50–58 s** | 4 |
+| direct, chequebook funded with 0.05 sBZZ | 265–300 ms (one 3.5 s) | **51–62 s** (one 8 s) | 6 |
+| `swarm-deferred-upload: true` | 28–97 ms | 1–12 s on 5 of 6, **51 s** once | 6 |
+| deferred + `swarm-pin: true` | 24–85 ms | **on the first poll, 6 of 6** | 6 |
+
+The mechanism is in Bee's source, not in Swarm's propagation alone. `/soc` pushes directly unless told otherwise (`pkg/api/soc.go`, "historically /soc always pushed directly to the network"), and a directly pushed chunk is kept nowhere on a light node: `GET /chunks` is a local lookup and then a network retrieval (`pkg/storer/netstore.go`, `Download`). So the uploader's own node cannot answer a read of the chunk it just accepted until the network can, which on Sepolia is about a minute. Deferred upload stores the chunk locally, but only until the pusher has a receipt, after which it is dropped again, hence the mixed column. Pinned, the copy stays. **This is T18.** On bee-factory the same retrieval takes about a second, on a mainnet light node about 270 ms (the IDEA-198 study), on Sepolia 50–60 s. The 500 `read chunk failed` is what a failed retrieval looks like.
+
+## A second cost the same measurement exposed
+
+A read of a chunk the node holds takes 12–73 ms. A read of a chunk that does not exist costs a full retrieval attempt: **3.6, 5.6 and 9.0 s** here (one anomalous 3 ms), 3.6 s on the mainnet light node in the IDEA-198 study. The SDK reads a not-yet-written index on every warm `get()` (the forward probe from the cached index) and before every `set()` (the conflict probe), so on a light node each of those pays one miss. That is why the polling reader above needed 2.7–8.8 s per poll even when the chunk was local, and it means the "warm read 10–300 ms" of S2 and D5 holds for the hit but not for the operation. The fetch transport now bounds a read by index with a client-side timeout (`probeTimeoutMs`, default 2 s); a slow hit that trips it counts as missing, which the feed already handles.
+
+## What this means for D19 and D6
+
+- The lookahead closes what D19 left open: the default store pays for its own checkpoint, and a two-device handoff **that respects the visibility window** takes disjoint slots (the phone did, through the network).
+- Two devices extending within the window cannot see each other, whatever the protocol, and the window is the network's retrieval readiness: about 1–3 s on mainnet, about a minute on Sepolia with direct uploads. The stamper's conflict detection (`expectIndex` on the checkpoint feed) works once the other checkpoint is visible; inside the window it cannot fire.
+- Options for D6 in Phase 4, recorded in the decision: a settle wait after publishing a reservation before spending from it, done ahead of need since feed-chunk addresses are known in advance; or per-device checkpoint feeds folded on read. Until then the rule stands: one device writes at a time, and the demo says so.
+- For a node the user runs, `transport.fetch(url, undefined, { deferred: true, pin: true })` makes the user's own writes readable at once by every tab and after every reload, and keeps their state on their node.
+
+## Cost
+
+One depth-20 batch for a day, 0.0435 sBZZ, plus gas; 0.05 sBZZ moved from the node wallet into its chequebook (it stays there). About 50 stamps spent across the run and the follow-ups. The payer key held 0.222 sBZZ and 0.054 sETH before the run.

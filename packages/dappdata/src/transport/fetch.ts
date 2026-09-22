@@ -9,12 +9,12 @@
 import {
   Identifier,
   PrivateKey,
-  keccak256,
   makeContentAddressedChunk,
   makeSOCAddress,
   unmarshalSingleOwnerChunk,
 } from "@ethersphere/core-sdk";
 import { DappDataError } from "../errors.js";
+import { feedIdentifier } from "../feed/address.js";
 import { isMissingChunkResponse } from "./missing.js";
 import {
   type BatchStatus,
@@ -42,18 +42,49 @@ async function stampHeader(stamp: Stamp, chunkAddress: Uint8Array): Promise<Reco
   return { "swarm-postage-stamp": hex(stamp.marshalled) };
 }
 
-/** Sequential feeds: identifier = keccak256(topic ‖ index), index 8 bytes big-endian. */
-function feedIdentifier(topic: Uint8Array, index: bigint): Uint8Array {
-  const counter = new Uint8Array(8);
-  new DataView(counter.buffer).setBigUint64(0, index, false);
-  const input = new Uint8Array(topic.length + 8);
-  input.set(topic, 0);
-  input.set(counter, topic.length);
-  return keccak256(input);
+export interface FetchTransportOptions {
+  /**
+   * Ask the node to store a feed update locally and push it to the network in
+   * the background, the way Bee's `/bytes` and `/chunks` routes work by
+   * default. `/soc` pushes directly unless told otherwise, and a directly
+   * pushed chunk is kept nowhere on the node, so reading it back — from a
+   * second tab, after a reload, from a second instance — is a network
+   * retrieval: about 1 s on bee-factory, 0.3 s on a mainnet light node, and
+   * 50–60 s on the Sepolia testnet (T18, measured 2026-09-22). Deferred, the
+   * node answers its own reads at once; other nodes still wait for the push.
+   */
+  deferred?: boolean | undefined;
+  /**
+   * Ask the node to pin every feed update it uploads. A light node drops its
+   * copy of an uploaded chunk once the network has taken it, so on a slow
+   * network the user's own node cannot answer a read of the user's own write
+   * for as long as retrieval takes. Pinned, the copy stays, and the user's
+   * node answers at once. Meant for a node the user runs; a public node's
+   * operator would not want it.
+   */
+  pin?: boolean | undefined;
+  /**
+   * How long a read by index may take before it counts as "not there". A
+   * chunk the node has answers in 10–70 ms; one that does not exist costs a
+   * full network retrieval attempt — 3.6 s on a mainnet light node, 3.6–9 s
+   * on Sepolia (measured 2026-09-22) — and the SDK reads a not-yet-written
+   * index on every warm read and before every write (D5, D6). Default 2000.
+   * A slow hit that trips this is treated as missing, which the feed already
+   * tolerates: it falls back to Bee's lookup, or to the T18 race it accepts.
+   */
+  probeTimeoutMs?: number | undefined;
 }
 
-export function fetchTransport(url: string, fetchImpl: typeof fetch = fetch): Transport {
+export function fetchTransport(
+  url: string,
+  fetchImpl: typeof fetch = fetch,
+  options: FetchTransportOptions = {},
+): Transport {
   const base = url.replace(/\/+$/, "");
+  const uploadHeaders: Record<string, string> = {
+    ...(options.deferred ? { "swarm-deferred-upload": "true" } : {}),
+    ...(options.pin ? { "swarm-pin": "true" } : {}),
+  };
 
   const ask = async (path: string, init?: RequestInit): Promise<Response> => {
     const response = await fetchImpl(`${base}${path}`, init);
@@ -64,9 +95,21 @@ export function fetchTransport(url: string, fetchImpl: typeof fetch = fetch): Tr
     );
   };
 
+  const probeTimeoutMs = options.probeTimeoutMs ?? 2000;
+
   /** Reads that are allowed to come back empty: see `missing.ts`. */
-  const askMaybe = async (path: string): Promise<Response | null> => {
-    const response = await fetchImpl(`${base}${path}`);
+  const askMaybe = async (path: string, timeoutMs?: number): Promise<Response | null> => {
+    let response: Response;
+    try {
+      response = await fetchImpl(
+        `${base}${path}`,
+        timeoutMs === undefined ? undefined : { signal: AbortSignal.timeout(timeoutMs) },
+      );
+    } catch (error) {
+      // A retrieval that takes longer than a miss is a miss for our purposes.
+      if ((error as { name?: string }).name === "TimeoutError") return null;
+      throw error;
+    }
     if (response.ok) return response;
     const body = await response.text();
     if (isMissingChunkResponse(response.status, body)) return null;
@@ -90,7 +133,7 @@ export function fetchTransport(url: string, fetchImpl: typeof fetch = fetch): Tr
         `/soc/${owner}/${identifier.toHex()}?sig=${soc.signature.toHex()}`,
         {
           method: "POST",
-          headers: { "content-type": "application/octet-stream", ...headers },
+          headers: { "content-type": "application/octet-stream", ...uploadHeaders, ...headers },
           body: body as BodyInit,
         },
       );
@@ -102,7 +145,7 @@ export function fetchTransport(url: string, fetchImpl: typeof fetch = fetch): Tr
     async getFeedUpdate({ owner, topic, index }: GetFeedUpdate): Promise<Uint8Array | null> {
       const identifier = new Identifier(feedIdentifier(topic, index));
       const address = makeSOCAddress(identifier, owner);
-      const response = await askMaybe(`/chunks/${address.toHex()}`);
+      const response = await askMaybe(`/chunks/${address.toHex()}`, probeTimeoutMs);
       if (response === null) return null;
       const chunk = unmarshalSingleOwnerChunk(
         new Uint8Array(await response.arrayBuffer()),

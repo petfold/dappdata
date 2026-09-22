@@ -105,6 +105,8 @@ See *Revision notes* at the end for what changed since the chat draft.
 
 **Not yet met, so the gate stays open:** D21's passkey half is unwritten, and D19's slot-backed checkpoint store cannot stamp itself, so `dd.stamper()` still needs a caller-supplied store. Both are named in the decisions. Peter closes D19 and D23.
 
+**D19 lookahead landed 2026-09-22:** the slot-backed store is the default and stamps its own checkpoint; a checkpoint race between two devices is detected through `expectIndex` and retried from the winner's lines (D19 entry). `spikes/phase2/src/d19.mjs` repeated the two-device test on Sepolia with no store supplied: the self-stamping store and the network restore work; the interleaving collided inside a visibility window measured at 50–60 s on Sepolia (`spikes/phase2/RESULTS.md`, "D19 closure run"), which moves the residual to D6 with numbers. The same run found that every warm read and write paid a 3.6–9 s retrieval miss, now bounded by the transport's probe timeout (D5 note).
+
 **Added by the IDEA-198 review (2026-09-22), same phase:** the dual-key restore that `entropy/wallet.ts` promises in a comment (try the typed-data key, then the `personal_sign` key) is not implemented in `connect()`, so a wallet that gains typed-data support between sessions opens an empty folder; and blob writes under a client-side stamp (D27), without which a sponsor-funded user cannot write a value over 4 064 bytes.
 
 **Why before the demo.** The demo is only convincing if its writes are funded like a real deployment's, not hand-stamped from a dev batch.

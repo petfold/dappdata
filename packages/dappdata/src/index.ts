@@ -23,6 +23,7 @@ export { Slot, MAX_INLINE_BYTES, bytesCodec, jsonCodec } from "./slot/index.js";
 export type { Codec, SetOptions, SlotOptions, SlotValue, WatchOptions } from "./slot/index.js";
 
 export { SequentialFeed } from "./feed/index.js";
+export { feedChunkAddress, feedIdentifier } from "./feed/address.js";
 
 export { funding, gnosis, sepolia, custom as customChain, BUCKET_DEPTH } from "./funding/index.js";
 export type {
@@ -35,7 +36,13 @@ export type {
   WriteBudget,
 } from "./funding/index.js";
 
-export { createStamper, DEFAULT_BLOCK, bucketCapacity, bucketOf } from "./stamper/index.js";
+export {
+  CheckpointConflictError,
+  createStamper,
+  DEFAULT_BLOCK,
+  bucketCapacity,
+  bucketOf,
+} from "./stamper/index.js";
 export type {
   CheckpointStore,
   Stamper,

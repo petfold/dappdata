@@ -11,9 +11,12 @@ import {
 } from "./funding/index.js";
 import { importKey, open, seal } from "./envelope/index.js";
 import type { Opened } from "./envelope/index.js";
+import { ConflictError, DappDataError } from "./errors.js";
+import { feedChunkAddress } from "./feed/address.js";
 import { SequentialFeed } from "./feed/index.js";
 import { Slot, type SlotOptions } from "./slot/index.js";
 import {
+  CheckpointConflictError,
   type CheckpointStore,
   type Stamper,
   type StamperStateWire,
@@ -162,50 +165,79 @@ export class DappData {
   /**
    * A stamper for this batch (D12, D19). The SDK signs stamps with the key
    * that owns the batch — the derived storage key — so any node will take the
-   * write, and it keeps the bucket state in a reserved slot so a new device
-   * never reuses a slot that the old one may have spent (D4, T12).
+   * write, and it keeps the bucket state in a reserved slot of this folder so
+   * a new device never reuses a slot that the old one may have spent (D4, T12).
    *
-   * Other libraries that write on the user's behalf take this object rather
-   * than a batch id, so one device keeps one account of the batch.
+   * The result is itself a `Stamp`: pass it to `connect`, `slot.set` or any
+   * library that writes on the user's behalf, so one device keeps one account
+   * of the batch.
    */
   async stamper(
     batchId: string,
     options: { depth: number; block?: number | undefined; store?: CheckpointStore | undefined },
   ): Promise<Stamper> {
-    return createStamper({
+    // The default store's own writes are stamped by the stamper it checkpoints,
+    // which needs the stamper to exist first; it is bound after creation and
+    // only used from `save`, which nothing calls during creation.
+    let stamper: Stamper | undefined;
+    const store = options.store ?? this.#slotCheckpointStore(batchId, () => stamper);
+    stamper = await createStamper({
       signer: this.#feedKey,
       batchId,
       depth: options.depth,
-      // A caller may keep the checkpoint itself — on disk, in a database, in
-      // another library's storage. Note that a store whose own writes are
-      // stamped by this stamper cannot work (D19); the slot-backed default
-      // below has that problem and is why `store` exists.
-      store: options.store ?? this.#slotCheckpointStore(batchId),
+      store,
       block: options.block,
     });
+    return stamper;
   }
 
   /**
    * The default checkpoint store: a reserved slot in the user's own folder,
    * so a new device finds the state with nothing but the signature.
    *
-   * Unfinished (D19): its own write needs a stamp, and taking that stamp from
-   * the stamper it checkpoints recurses. It works today only when the slot
-   * write is paid for some other way — a node holding the batch. A stamper
-   * with a caller-supplied `store` has no such problem.
+   * Its write is stamped by the stamper it checkpoints. That works because a
+   * feed chunk's address depends on the topic and index, not the payload, so
+   * the store can name the addresses its next write will need (`upcoming`)
+   * and the stamper reserves them inside the checkpoint being written (D19
+   * lookahead). And because the slot write carries `expectIndex`, a second
+   * device publishing at the same moment is detected rather than overwritten,
+   * and the stamper restarts from the winner's lines.
    */
-  #slotCheckpointStore(batchId: string): CheckpointStore {
+  #slotCheckpointStore(batchId: string, stamper: () => Stamper | undefined): CheckpointStore {
     // A reserved slot name: the leading dot is not something a dapp would
     // choose, and the batch id keeps two batches apart.
-    const slot = this.slot<StamperStateWire>(`.stamper/${batchId}`, { schema: 1 });
+    const name = `.stamper/${batchId}`;
+    const slot = this.slot<StamperStateWire>(name, { schema: 1 });
+    const topic = slotTopic(this.app, name);
+    const owner = this.address;
+
+    const head = async (): Promise<bigint | undefined> => (await slot.get())?.index;
+
     return {
       async load() {
         const checkpoint = await slot.get();
         return checkpoint === null ? null : decodeState(checkpoint.value);
       },
+
+      async upcoming() {
+        const current = await head();
+        const next = current === undefined ? 0n : current + 1n;
+        // The write about to happen, and the one after it: a checkpoint pays
+        // for itself and for its successor.
+        return [feedChunkAddress(owner, topic, next), feedChunkAddress(owner, topic, next + 1n)];
+      },
+
       async save(state) {
-        const current = await slot.get();
-        await slot.set(encodeState(state), { expectIndex: current?.index });
+        const stamp = stamper();
+        if (!stamp) throw new DappDataError("unsupported", "the checkpoint store has no stamper yet");
+        try {
+          await slot.set(encodeState(state), { expectIndex: await head(), stamp });
+        } catch (error) {
+          if (!(error instanceof ConflictError)) throw error;
+          const winner = await slot.get();
+          if (winner === null) throw error;
+          throw new CheckpointConflictError(decodeState(winner.value));
+        }
       },
     };
   }

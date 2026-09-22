@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { hexToBytes } from "@noble/hashes/utils";
 import { keccak_256 } from "@noble/hashes/sha3";
 import {
+  CheckpointConflictError,
   type CheckpointStore,
   type StamperState,
   bucketCapacity,
@@ -223,34 +224,197 @@ describe("a full batch stops rather than overwrite (D4)", () => {
   });
 });
 
-describe("a checkpoint cannot stamp itself (D19)", () => {
-  it("says so plainly instead of recursing for ever", async () => {
-    // A store whose own write is stamped by the stamper it checkpoints: each
-    // checkpoint chunk lands in a fresh bucket, which needs a reservation,
-    // which writes a checkpoint, which needs a reservation…
-    let stamper: Awaited<ReturnType<typeof createStamper>> | null = null;
-    let bucket = 100;
-    const recursive: CheckpointStore = {
+describe("a checkpoint that pays for itself (D19 lookahead)", () => {
+  type Live = Awaited<ReturnType<typeof createStamper>>;
+  interface CheckpointChunk {
+    address: Uint8Array;
+    state: StamperState;
+  }
+  /** A shared "feed" of checkpoint chunks: what two devices would both read. */
+  const feed = (): CheckpointChunk[] => [];
+  const addressAt = (index: number): Uint8Array =>
+    keccak_256(new TextEncoder().encode(`checkpoint-chunk-${index}`));
+
+  /**
+   * A store whose own writes are stamped by the stamper it checkpoints — the
+   * slot-backed default. It knows the address of its next write before it has
+   * a payload, so it can announce it.
+   */
+  function selfStampingStore(
+    chunks: CheckpointChunk[],
+    getStamper: () => Live | null,
+    stampsSeen: Array<{ bucket: number; slot: number }>,
+  ): CheckpointStore {
+    return {
       async load() {
-        return null;
+        const last = chunks.at(-1);
+        return last ? decodeState(encodeState(last.state)) : null;
       },
-      async save() {
-        // Stamping inside the save is what a slot-backed store does.
-        await stamper?.stamp(addressIn(bucket++, 1));
+      async upcoming() {
+        return [addressAt(chunks.length), addressAt(chunks.length + 1)];
+      },
+      async save(state) {
+        const address = addressAt(chunks.length);
+        // The transport asks the stamper for the checkpoint chunk's own stamp.
+        const marshalled = await getStamper()?.stamp(address);
+        if (!marshalled) throw new Error("no stamper");
+        stampsSeen.push(spent(marshalled));
+        chunks.push({ address, state: decodeState(encodeState(state)) });
       },
     };
+  }
 
+  it("writes its checkpoint through the stamper without recursing", async () => {
+    const chunks = feed();
+    const stampsSeen: Array<{ bucket: number; slot: number }> = [];
+    let stamper: Live | null = null;
     stamper = await createStamper({
       signer: KEY,
       batchId: BATCH,
       depth: 24,
-      store: recursive,
+      store: selfStampingStore(chunks, () => stamper, stampsSeen),
       block: 4,
     });
 
-    await expect(stamper.stamp(addressIn(1, 1))).rejects.toThrowError(
-      /cannot be stamped by the stamper it checkpoints/,
-    );
+    for (let i = 0; i < 10; i++) await stamper.stamp(addressIn(1, i));
+    // 10 data stamps in one bucket at block 4: three checkpoints.
+    expect(chunks).toHaveLength(3);
+
+    // Every checkpoint chunk's slot sits below the line that same checkpoint
+    // publishes: the checkpoint covers itself.
+    for (const [i, chunk] of chunks.entries()) {
+      const { bucket, slot } = stampsSeen[i]!;
+      expect(bucketOf(chunk.address)).toBe(bucket);
+      expect(chunk.state.reserved.get(bucket) ?? 0).toBeGreaterThan(slot);
+    }
+    // And each checkpoint already reserves a slot for the next checkpoint's chunk.
+    for (let i = 0; i + 1 < chunks.length; i++) {
+      const nextBucket = bucketOf(chunks[i + 1]!.address);
+      expect(chunks[i]!.state.reserved.get(nextBucket) ?? 0).toBeGreaterThan(0);
+    }
+  });
+
+  it("restores on a second device and never reuses a checkpoint's own slot", async () => {
+    const chunks = feed();
+    const stampsSeen: Array<{ bucket: number; slot: number }> = [];
+    const key = (s: { bucket: number; slot: number }): string => `${s.bucket}/${s.slot}`;
+    const data: string[] = [];
+
+    let first: Live | null = null;
+    first = await createStamper({
+      signer: KEY,
+      batchId: BATCH,
+      depth: 20,
+      store: selfStampingStore(chunks, () => first, stampsSeen),
+      block: 2,
+    });
+    for (let i = 0; i < 5; i++) data.push(key(spent(await first.stamp(addressIn(2, i)))));
+
+    let second: Live | null = null;
+    second = await createStamper({
+      signer: KEY,
+      batchId: BATCH,
+      depth: 20,
+      store: selfStampingStore(chunks, () => second, stampsSeen),
+      block: 2,
+    });
+    for (let i = 0; i < 5; i++) data.push(key(spent(await second.stamp(addressIn(2, 100 + i)))));
+
+    // Data slots and checkpoint slots, both devices: no (bucket, slot) twice.
+    const everything = [...data, ...stampsSeen.map(key)];
+    expect(new Set(everything).size).toBe(everything.length);
+  });
+
+  it("still refuses a self-stamping store that gives no lookahead", async () => {
+    let stamper: Live | null = null;
+    let bucket = 100;
+    const blind: CheckpointStore = {
+      async load() {
+        return null;
+      },
+      async save() {
+        await stamper?.stamp(addressIn(bucket++, 1));
+      },
+    };
+    stamper = await createStamper({ signer: KEY, batchId: BATCH, depth: 24, store: blind, block: 4 });
+    await expect(stamper.stamp(addressIn(1, 1))).rejects.toThrowError(/must implement upcoming/);
+  });
+});
+
+describe("losing the checkpoint race voids the reservation (D19)", () => {
+  /**
+   * A store with feed semantics: `save` fails when the checkpoint moved since
+   * this device last loaded it, and hands over what it found. This is what
+   * the slot-backed store does with `expectIndex`, and what a shared file
+   * cannot do.
+   */
+  function racyStore() {
+    let published: StamperState | null = null;
+    let version = 0;
+    // One shared "last seen" is enough here because the two devices below
+    // take turns; each save is preceded by that device's own load.
+    let lastSeen = 0;
+    return {
+      get published() {
+        return published;
+      },
+      async load() {
+        const copy = published ? decodeState(encodeState(published)) : null;
+        // Remember which version this device last saw: a save from an older
+        // view conflicts, as a feed write with a stale expectIndex would.
+        lastSeen = version;
+        return copy;
+      },
+      async save(state: StamperState) {
+        if (lastSeen !== version && published) throw new CheckpointConflictError(published);
+        published = decodeState(encodeState(state));
+        version += 1;
+        lastSeen = version;
+      },
+    };
+  }
+
+  it("two devices starting from the same blank checkpoint take disjoint slots", async () => {
+    const feed = racyStore();
+    // Both devices load "nothing" before either has published.
+    const a = await createStamper({ signer: KEY, batchId: BATCH, depth: 20, store: feed, block: 4 });
+    const b = await createStamper({ signer: KEY, batchId: BATCH, depth: 20, store: feed, block: 4 });
+
+    const key = (m: Uint8Array): string => {
+      const s = spent(m);
+      return `${s.bucket}/${s.slot}`;
+    };
+    const aSlots = [key(await a.stamp(addressIn(7, 1)))]; // publishes [0,4) in bucket 7
+    // b's first stamp tries to publish [0,4) too, from its blank view; the
+    // save conflicts, b takes a's lines and reserves [4,8) instead.
+    const bSlots = [key(await b.stamp(addressIn(7, 2)))];
+    expect(bSlots[0]).toBe("7/4");
+
+    for (let i = 0; i < 5; i++) aSlots.push(key(await a.stamp(addressIn(7, 10 + i))));
+    for (let i = 0; i < 5; i++) bSlots.push(key(await b.stamp(addressIn(7, 20 + i))));
+    const all = [...aSlots, ...bSlots];
+    expect(new Set(all).size).toBe(all.length);
+  });
+
+  it("gives up after too many lost races with a typed error", async () => {
+    const alwaysLoses: CheckpointStore = {
+      async load() {
+        return null;
+      },
+      async save() {
+        // Someone else always publishes a checkpoint that reserved more.
+        throw new CheckpointConflictError(
+          decodeState({ v: 1, batchId: BATCH, depth: 20, generation: 99, reserved: [[3, 16]] }),
+        );
+      },
+    };
+    const stamper = await createStamper({ signer: KEY, batchId: BATCH, depth: 20, store: alwaysLoses });
+    // Bucket 3 is full in the remote state, so the retry ends in "full", which
+    // is the right answer: nothing is left for this device to reserve.
+    await expect(stamper.stamp(addressIn(3, 1))).rejects.toThrowError(/is full in bucket 3/);
+
+    const stillLoses = await createStamper({ signer: KEY, batchId: BATCH, depth: 20, store: alwaysLoses });
+    await expect(stillLoses.stamp(addressIn(5, 1))).rejects.toThrowError(/kept moving/);
   });
 });
 
