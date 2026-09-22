@@ -125,6 +125,7 @@ See *Revision notes* at the end for what changed since the chat draft.
 - The restore path: mutate state, open a fresh browser profile, sign in, watch the state return.
 - Instrumentation: restore time, read-latest time, time until a second client sees a write. Reported in the UI and logged.
 - First honest test of the derivation UX: the extra signature prompt at sign-in and how the dapp explains it.
+- **Write and read latency on a light node** (Gnosis run, 2026-09-22). A write cost 11–13 s and a warm read 13–15 s on mainnet, none of it network: probe misses at the 2 s default and a checkpoint per new bucket at depth 17. Read the checkpoint head once per checkpoint, lower the probe timeout where hits take 13–270 ms, prefer depth 20 with a larger reservation block, and measure again before the C3 gate numbers are taken.
 - **Empty-state fast path** (IDEA-198, Q6). Learning that a feed does not exist costs about 3.6 s, the missing-chunk retrieval timeout, on a mainnet light node. The demo shows a first-run state at once and fills it in when `get()` resolves; `docs/UX.md` records the pattern. The same note owes a paragraph on the per-app batch (D23): what a user sees when a second dapp needs a second batch, and what a sponsor sees.
 - Wallet matrix additions (D25): one embedded-wallet provider (Privy or Dynamic) and one EIP-7702 upgraded MetaMask account, both checked for determinism and for the D2 check.
 - Optional: `packages/dappdata-react` with `useSlot` if the demo makes the hooks obvious.

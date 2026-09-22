@@ -93,3 +93,29 @@ A 12 030-byte value, sealed with the envelope, split client-side into four chunk
 ## Cost
 
 One depth-20 batch for a day, 0.0435 sBZZ, plus gas; 0.05 sBZZ moved from the node wallet into its chequebook (it stays there). About 50 stamps spent across the run and the follow-ups. The payer key held 0.222 sBZZ and 0.054 sETH before the run.
+
+
+---
+
+# Gnosis mainnet run — 2026-09-22
+
+Script `src/mainnet.mjs`, two runs (the first stopped by design at the shared-bucket step, see below). Node: Swarm Desktop's mainnet light node, Bee 2.8.2 on `:1633`, holding none of our batches. Payer: a throwaway key funded with 0.5 xBZZ and 0.05 xDAI withdrawn from the node's wallet through Bee's `/wallet/withdraw` routes after Peter whitelisted it. **Everything passed: 13 stamps, no slot spent twice, and the funding rehearsal PLAN's Phase 2 owed on Gnosis is done.**
+
+| Step | Result |
+|---|---|
+| Sponsor buys a depth-17 batch owned by the derived key (Gnosis contracts from `chains.ts`, first use) | two batches, 0.0249 xBZZ each for a day, usable after 51 s and 45 s |
+| Bee's `batchTTL` against the contract | **1.00 days both**; the Sepolia 170× error is chain-specific, as IDEA-198 found |
+| Laptop, default self-stamping store: two notes, one bucket slot, a 10 KB blob | all written; blob 53 s and 59 s |
+| Same-node visibility, three updates, fresh instance polling | **seen on the first poll every time**; the poll itself took 13–19 s |
+| Phone after 20 s: restores the checkpoint from the network | restored; **refused the shared bucket with `too-large`**, because at depth 17 the laptop's reservation is the whole bucket (D4, D19); took its own bucket; appended to notes; read the blob back identical |
+| Non-owner `topUp` on Gnosis | 23.9 h → 47.9 h |
+
+## Two numbers that matter
+
+**Visibility on mainnet is not the problem.** Every update was visible to a fresh instance on its first poll, so the window is below the poll's own duration, consistent with the study's 270 ms first reads and 1.3 s gateway visibility. The D6 residual on mainnet is a second or two, against a minute on Sepolia.
+
+**Our own latency is.** A write took 11–13 s and a warm read 13–15 s, and none of it is the network. At depth 17 a bucket holds two slots, so every chunk opens a new bucket and every new bucket costs a checkpoint; each checkpoint reads the checkpoint feed three times (`load`, `upcoming`, `save`) and each read pays a 2 s probe miss on the index past the head, plus the write's own conflict probe. Ten to twelve seconds of a twelve-second write is probe timeouts and checkpoint churn. Three fixes, all client-side, for Phase 3: read the head once per checkpoint; default `probeTimeoutMs` lower on a network where hits take 13–270 ms (1 s is safe on mainnet); and prefer depth 20 with a larger reservation block, so a checkpoint covers many writes. The blob's 53–59 s is the same cost times four chunks.
+
+## Cost
+
+Two depth-17 batches for a day, 0.0498 xBZZ, one top-up of 0.0249 xBZZ, gas under 0.002 xDAI. The payer key `0x1c58…C5e0` keeps the rest for the demo; the node's wallet is otherwise untouched.
