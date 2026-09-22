@@ -177,7 +177,7 @@ Six and a half times smaller on the wire, on a page where the user pays for ever
 **Consequences.** `bee: { url }` becomes `transport: transport.http(url)` with `transport.custom(impl)` beside it. The bee-js pin (D10) then governs the default transport only.
 
 ## D19 — The stamper as a service, and bucket state under frequent writes
-**Status:** open — closes at the Phase 2 gate, which the run of 2026-09-21 passed on Sepolia. Two things still stand in the way: the slot-backed checkpoint store cannot stamp itself (below), and Peter confirms.
+**Status:** closed (Peter, 2026-09-22, Phase 2 gate): reserve-before-use with the self-stamping slot-backed store as the default; the two-device residual is the visibility window and belongs to D6.
 **Context.** D4 and D12 make client-side stamping and never-lose-the-bucket-state the core operational rule (S3). Other libraries that write feeds on the user's behalf need to stamp too, and a collaborative editor writes a snapshot every few seconds, far more often than the SDK's own slots. A blank or stale stamper on a new device overwrites the user's own chunks and the node answers 201.
 **Options.** (a) Stamping stays private to the SDK; other libraries bring their own batch. (b) `stamper(batchId)` returns `{ stamp(address), state(), checkpoint() }` for any library to call; the SDK owns bucket state: in memory, cached locally as a hint, checkpointed to a reserved slot every N stamps or T seconds; a new device restores the checkpoint and advances every bucket by a safety margin at least the checkpoint interval, which is S3's "start from a slot range the old device cannot have used". (c) swarm-id's partition-lease design (D8): each device leases a disjoint slot range.
 **Leaning.** (b), with (c) as the refinement if two devices write at once. The margin costs capacity; depth sizing includes it (D23).
@@ -204,7 +204,7 @@ Two consequences. The checkpoint chunk is itself stamped, so a reservation block
 **Consequences.** Envelope format frozen in Phase 1 with the D22 schema byte. A slot is the natural home for the per-document keys a dapp hands to the other library.
 
 ## D21 — Entropy sources without a wallet
-**Status:** closed 2026-09-22: option (c); mnemonic shipped in Phase 1, `entropy.passkey()` landed 2026-09-22 with the evaluation D25 asked for (below). Peter confirms at the Phase 2 gate.
+**Status:** closed (Peter, 2026-09-22, Phase 2 gate): option (c); mnemonic shipped in Phase 1, `entropy.passkey()` landed 2026-09-22 with the evaluation D25 asked for (below); PRF-only ships, the wrapped seed is D28.
 **Context.** D2 refuses contract and passkey wallets; D8 left the seed behind an `EntropySource` interface with one implementation, the wallet signature. Swarm Desktop users often run a Bee node and no browser wallet, and CI needs a fixed seed.
 **Options.** (a) Wallet only. (b) Ship `entropy.wallet(provider)` (default), `entropy.mnemonic(words)` (BIP-39 seed; also the test source), and later `entropy.passkey()` over the WebAuthn PRF extension, which yields a deterministic secret in current browsers and is the way back in for the D2-excluded users without swarm-id's hosted domain. (c) (b) with the app binding applied after the source for every source alike, `seed = HKDF(secret, info = "dappdata/seed/v1/" + app)`, so a mnemonic user gets per-app isolation too and the wallet path is bound twice, harmlessly.
 **Decision.** (c). One derivation spec for every source: the source yields a secret, and the app binding is applied after it for all sources alike, `seed = HMAC-SHA256(secret, "dappdata/seed/v1/" + app)` (D15's primitive, D16's `app`). Phase 1 ships `entropy.wallet(provider)` and `entropy.mnemonic(words)`; `entropy.passkey()` follows in Phase 2. The wallet path is bound twice, harmlessly.
@@ -220,7 +220,7 @@ Two consequences. The checkpoint chunk is itself stamped, so a reservation block
 **Consequences.** Frame layout fixed in Phase 1 alongside D9 and D20.
 
 ## D23 — Funding granularity: one batch per user per app
-**Status:** open — closes at the Phase 2 gate; `fund`, `quote` and `health` are written and were exercised on Sepolia 2026-09-21. Peter confirms.
+**Status:** closed (Peter, 2026-09-22, Phase 2 gate): option (a) for v1; `fund`, `quote` (with `bytesPerWrite`) and `health` are written and were exercised on Sepolia.
 **Context.** Per-app owner keys (D12, D16) mean each app a user adopts brings its own postage batch, funded separately. Raised in the review thread of 2026-09-04 (the note that was `issues.txt`) as probably the biggest UX question after the latency budget. A single user-level batch would need one key to sign every app's stamps, which is the cross-app isolation D8 keeps.
 **Options.** (a) Accept per-app batches and make them cheap and visible: `fund()` sizes depth and amount from a write budget the dapp declares, `health()` reports days of storage left, the dapp shows it, sponsors can `topUp` any of them. (b) A user-level "storage wallet" app that holds one batch and signs stamps for other apps through `postMessage`; this is swarm-id's hosted-domain design, declined in D8. (c) A shared batch with per-app bucket ranges; still one owner key, same objection.
 **Leaning.** (a) for v1, said plainly in `docs/FUNDING.md`. Revisit (b) in Phase 5 together with D8.
@@ -258,7 +258,7 @@ Two consequences. The checkpoint chunk is itself stamped, so a reservation block
 **Consequences.** Sets who runs the independent review (PLAN Phase 4 gate) and who answers the swarm-id team (D24).
 
 ## D27 — Blob writes under a client-side stamp
-**Status:** implemented as (b) on 2026-09-22; Peter confirms at the Phase 2 gate. Raised by the IDEA-198 study (remains item 3).
+**Status:** closed (Peter, 2026-09-22, Phase 2 gate): option (b), implemented and verified on Sepolia the same day. Raised by the IDEA-198 study (remains item 3).
 **Context.** A slot value over 4 064 bytes goes to a blob through `POST /bytes` with `swarm-encrypt: true` (D9). That route needs the node to hold the batch, because the node splits the data and the client never sees the chunk addresses to stamp. The fetch transport refuses a `StampSigner` there with a typed `unsupported` error. So a sponsor-funded user, whose batch no node holds, cannot write a blob today.
 **Options.** (a) Chunk client-side with core-sdk's CAC and BMT builders, stamp each chunk, upload each through `POST /chunks`, and keep Swarm encryption by reimplementing its chunker client-side; (b) chunk client-side and drop Swarm encryption for blobs: seal the whole blob with the D9 AES-256-GCM envelope first, upload plain chunks, and carry the 32-byte root reference inside the sealed slot payload as today; (c) leave blobs on `/bytes` and document that blobs need a node-held batch.
 **Leaning.** (b). The envelope already protects the slot payload with the same key and AAD rules; Swarm encryption on top of it bought nothing but a longer reference. (a) reimplements a Bee code path to no gain; (c) makes sponsor-pays a second-class mode, against D3. Reads then take the plain-chunk path, so `/bytes` GET of a plain reference or a client-side join; measure which.
