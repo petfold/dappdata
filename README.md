@@ -2,11 +2,11 @@
 
 Persistent, per-user dapp state on Swarm, keyed to a Sign-In with Ethereum identity — the per-user application-data folder, for dapps. One wallet signature derives a storage key; state lives in encrypted Swarm feeds that key owns; any device that can reproduce the signature gets the state back.
 
-Status: Phase 0 is done and its gate is GO (2026-09-21); Phase 1 is under way in `packages/dappdata`, where derivation, entropy sources, the envelope, the transports, the feed and slots work — against a mocked Bee in unit tests and against a real node on bee-factory. The SDK is not published yet, funding arrives in Phase 2, and a caller still supplies a postage batch. Planning and decision docs live in `docs/`; start with `docs/PLAN.md`. Working with Claude Code? Read `CLAUDE.md` first.
+Status: Phase 0 and Phase 1 are done and signed off (2026-09-21); Phase 2 is under way in `packages/dappdata`, where derivation, entropy sources, the envelope, the transports, the feed, slots, the client-side stamper and funding work — against a mocked Bee in 80 unit tests, against a real node on bee-factory, and on Sepolia for funding. The SDK is not published yet. Solar Punk's feasibility study of the idea (IDEA-198) is reviewed in `docs/REVIEW-IDEA-198.md`. Planning and decision docs live in `docs/`; start with `docs/PLAN.md`. Working with Claude Code? Read `CLAUDE.md` first.
 
 ## What it looks like
 
-The API below is implemented in `packages/dappdata` and covered by its tests, bar the funding calls, which are Phase 2. It is not published, so it can still move.
+The API below is implemented in `packages/dappdata` and covered by its tests, funding included. It is not published, so it can still move.
 
 **Keep a user's settings across devices.** After Sign-In with Ethereum, hand dappdata the same provider. It asks the wallet for one more signature, over a fixed message that names your dapp's origin, and derives the user's storage key from it.
 
@@ -17,7 +17,7 @@ const dd = await DappData.connect({
   entropy: entropy.wallet(provider),          // EIP-1193, the one the user signed in with
   app: { id: window.location.origin },        // or a stable identity if you are served from a Swarm gateway
   transport: transport.fetch("https://bee.example.org"),   // 26 KB gzipped, no bee-js
-  stamp: batchId,                             // Phase 1: you bring a postage batch; funding is Phase 2
+  stamp: batchId,                             // or a client-side stamper over a batch dd.funding bought (D3, D12)
 });
 
 const prefs = dd.slot<Prefs>("preferences");

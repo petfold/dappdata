@@ -105,6 +105,8 @@ See *Revision notes* at the end for what changed since the chat draft.
 
 **Not yet met, so the gate stays open:** D21's passkey half is unwritten, and D19's slot-backed checkpoint store cannot stamp itself, so `dd.stamper()` still needs a caller-supplied store. Both are named in the decisions. Peter closes D19 and D23.
 
+**Added by the IDEA-198 review (2026-09-22), same phase:** the dual-key restore that `entropy/wallet.ts` promises in a comment (try the typed-data key, then the `personal_sign` key) is not implemented in `connect()`, so a wallet that gains typed-data support between sessions opens an empty folder; and blob writes under a client-side stamp (D27), without which a sponsor-funded user cannot write a value over 4 064 bytes.
+
 **Why before the demo.** The demo is only convincing if its writes are funded like a real deployment's, not hand-stamped from a dev batch.
 
 ---
@@ -119,6 +121,7 @@ See *Revision notes* at the end for what changed since the chat draft.
 - The restore path: mutate state, open a fresh browser profile, sign in, watch the state return.
 - Instrumentation: restore time, read-latest time, time until a second client sees a write. Reported in the UI and logged.
 - First honest test of the derivation UX: the extra signature prompt at sign-in and how the dapp explains it.
+- **Empty-state fast path** (IDEA-198, Q6). Learning that a feed does not exist costs about 3.6 s, the missing-chunk retrieval timeout, on a mainnet light node. The demo shows a first-run state at once and fills it in when `get()` resolves; `docs/UX.md` records the pattern. The same note owes a paragraph on the per-app batch (D23): what a user sees when a second dapp needs a second batch, and what a sponsor sees.
 - Wallet matrix additions (D25): one embedded-wallet provider (Privy or Dynamic) and one EIP-7702 upgraded MetaMask account, both checked for determinism and for the D2 check.
 - Optional: `packages/dappdata-react` with `useSlot` if the demo makes the hooks obvious.
 
@@ -138,13 +141,17 @@ See *Revision notes* at the end for what changed since the chat draft.
 - **Multi-device writes (D6).** M0 ships expect-index and `merge`; Phase 4 decides whether per-device feeds with a merge step are needed. The CRDT layer is swarm-collaborative-docs with the D20 envelope and a D17 sub-key, not code here.
 - **Crypto for other libraries (D20).** Publish `dappdata/envelope`; land the encryption hook in swarm-collaborative-docs (Solar Punk owns it) so a dapp encrypts shared documents in the same format; optional ENS contenthash check for app binding (T14).
 - **Namespace and discoverability (D7).** Settle the topic convention and whether a second dapp, or the user on another dapp, can find state written under a derived key from the main address alone. Options: per-dapp isolation as a privacy feature; a mapping feed the user publishes; a registry convention. This closes before Phase 5 because changing it later breaks every adopter.
-- **Security review.** Adversarial pass over `THREATS.md`: phishing surface of the derivation message, envelope and nonce handling, key lifetime in memory, proxy abuse. Fix or document each item.
+- **Security review.** Adversarial pass over `THREATS.md`: phishing surface of the derivation message, envelope and nonce handling, key lifetime in memory, proxy abuse. Fix or document each item. **An independent reader** from outside the project goes over `derive/`, `envelope/` and `stamper/` with `THREATS.md` as the checklist before any 0.x reaches an external adopter (IDEA-198 condition 2); who arranges it follows from D26.
+- **Mainnet two-device slot test** (IDEA-198 condition 1). Repeat the Phase 2 two-device test on Gnosis mainnet with a depth-17 immutable batch: disjoint slots from a shared checkpoint, and a deliberately reused slot replacing the earlier chunk on mainnet storers as it did on Sepolia. Needs a mainnet batch, so Peter confirms first (working rule 4).
+- **`docs/CONVENTIONS.md`** is written so file-manager-lib and swarm-collaborative-docs can adopt the topic scheme too (`<library>/<version>/<scope>/<name>`, hashed, version mandatory); the study found three Solar Punk-adjacent libraries with three schemes.
 - **Key loss.** No recovery is acceptable; the SDK must say so in its docs and give the dapp a hook to warn users. Add a versioned derivation message so a future change gets a migration path instead of orphaning state.
 
 **Deliverables.** Version 0.x on npm behind the chosen scope; `THREATS.md` with every item resolved or accepted; `docs/CONVENTIONS.md` for topic naming.
 
 **Gate.**
-- D6, D7 closed.
+- D6, D7 closed; D26 closed and the npm name registered.
+- The independent review is done and every finding is fixed or accepted in `THREATS.md`.
+- The mainnet two-device slot test passes.
 - Every `THREATS.md` item has a status.
 - A second Claude session, given only the docs, can integrate the SDK into a toy dapp without asking a question. (Cheap proxy for C1 and for the docs.)
 
@@ -160,7 +167,8 @@ See *Revision notes* at the end for what changed since the chat draft.
 - Docs site or README of record; examples; announce in Swarm channels.
 - Recruit one external dapp and support the integration.
 - **Candidate first adopter: swarmtyp** (Solar Punk, `../swarmtyp`, a collaborative Typst editor served from Swarm). Its plan already puts identity and the per-user project list on dappdata in its Phase 3, about six to eight weeks after 2026-09-05. It would exercise what the demo cannot: D16 (an app with no origin of its own), D17 (a key for swarm-collaborative-docs), D19 (a snapshot every few seconds), D6 (two devices on one list), T15 (a shared gateway origin). swarmtyp's D-23 (2026-09-05) plans three identity roots behind one interface, device key, mnemonic and wallet, with the device key as the default for users without a wallet; from dappdata it needs the mnemonic source of D21 built rather than listed, and D16's declared app identity accepted by `derive`, before its Phase 3.
-- Tracked separately, each its own issue: recordstore as the structured or transactional layer (IDEA-166 convergence); reuse of IDEA-176's sponsored-batch mechanics if that idea advances; the smart-account fallback from S1.
+- **File Manager** (IDEA-198, finding T-b). file-manager-lib's `feat/swarm-id` branch has an `interface SwarmClient` seam with `BeeClient` and `SnahaClient` implementations; a `DappDataClient` over the dappdata transport, stamper and `deriveKey` would make the wallet a third identity root for the File Manager, restoring its `filemanager-state` feed on any device with the wallet. After SPDV-1500 lands the seam on master, not before and not inside the Swarm ID MVP; whether the File Manager wants a wallet root at all is a product decision nobody has recorded. The inverse shape, `entropy.swarmId(client)` (D21 note, P3), brings swarm-id's passkey users to dappdata and leaves the File Manager untouched.
+- Tracked separately, each its own issue: recordstore as the structured or transactional layer (IDEA-166 convergence; a slot value can carry a recordstore root inline, the open point is whether the recordstore's feed bump becomes the slot write or the slot points at a second feed); reuse of IDEA-176's sponsored-batch mechanics if that idea advances; the smart-account fallback from S1.
 
 **Gate.** One external dapp in production or public beta with dappdata state.
 
@@ -195,3 +203,4 @@ Phase 0: days per spike, in parallel where wallets allow. Phases 1–3 together 
 - 2026-09-05, review from the swarmtyp side: D15–D23 added as open items; THREATS T12–T16; Phase 1 and 2 gates extended; Phase 3 gains the Swarm-hosted integration guide; Phase 5 names swarmtyp as first adopter candidate. The review note `issues.txt` is folded into D15 and D23 and removed.
 - 2026-09-06, convergence assessment: `docs/CONVERGENCE.md` and `docs/PROPOSAL-swarm-id.md` added; D24 opened. Phase 1 spec adopts swarm-id's KDF primitive, canonicalisation and sub-key shape whatever the swarm-id team answers.
 - 2026-09-06, ecosystem identity review: D25 opened, T17 added. The D2 check learns EIP-7702; the passkey PRF source moves to Phase 2; Phase 3 matrix gains an embedded wallet and a 7702 account.
+- 2026-09-22, Solar Punk's feasibility study IDEA-198 (`docs/REVIEW-IDEA-198.md`): D26 and D27 opened; Phase 2 gains the dual-key restore and client-stamped blobs; Phase 3 the empty-state path and the batch UX note; Phase 4 the independent reader, the mainnet two-device test and a shareable `CONVENTIONS.md`; Phase 5 the File Manager `SwarmClient` adapter. T12 cites Bee source; T18 marked environment-dependent.

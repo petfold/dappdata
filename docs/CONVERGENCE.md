@@ -101,3 +101,7 @@ Prior art, not a convergence candidate: username-and-password identity, encrypte
 ## Recommendation
 
 Take future 3. Open D24, send the proposal to the swarm-id author, and in the meantime adopt items 1 to 4 above in the Phase 1 spec, because they are good on their own merits and cost nothing if the proposal is declined.
+
+## Addendum, 2026-09-22: what the IDEA-198 study added
+
+Solar Punk's feasibility study (`docs/REVIEW-IDEA-198.md`) read swarm-id at `2f298c5`, lib 0.5.0, released 2026-09-21 with breaking changes (dApp and identity-UI entry split, bee-js 13); this file was written from 0.3.0. Three things to carry forward. First, no answer to the proposal is visible in their repository, issues or milestones; D24 stays open and the v1 derivation is frozen regardless. Second, `SwarmIdClient.deriveAppSecret(label)` exists, so swarm-id can be a dappdata entropy source today (D21 note; origin-bound, no declared identity). Third, the File Manager: file-manager-lib's `feat/swarm-id` branch carries an `interface SwarmClient` seam with a `SnahaClient` pinned to swarm-id `^0.3.0`; a `DappDataClient` over that seam is the integration shape, after SPDV-1500 puts the seam on master (PLAN Phase 5).
