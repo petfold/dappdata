@@ -107,7 +107,8 @@ export class Slot<T> {
     if (!stamp) {
       throw new DappDataError(
         "unsupported",
-        "a write needs a postage batch; pass `stamp` to connect() or set() (funding lands in Phase 2)",
+        "a write needs a postage batch: pass `stamp` to connect(), slot() or set(), a batch id or " +
+          "a stamper from dd.stamper() (see docs/FUNDING.md)",
       );
     }
 

@@ -42,8 +42,10 @@ export interface ConnectOptions {
   app: AppIdentity;
   transport: Transport;
   /**
-   * A postage batch the node can stamp writes with. Phase 1 takes it from the
-   * caller; `funding.fund()` arrives in Phase 2 (D3, D23).
+   * How writes are paid for, for every slot unless a slot or a `set` says
+   * otherwise: a batch id the node holds and stamps with, or a client-side
+   * `Stamper` from `dd.stamper()` over a batch `dd.funding()` bought (D3,
+   * D12, D19). Optional here because a read-only instance needs none.
    */
   stamp?: Stamp | undefined;
 }

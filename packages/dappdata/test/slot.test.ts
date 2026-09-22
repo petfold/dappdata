@@ -199,7 +199,7 @@ describe("big values (D9)", () => {
   });
 });
 
-describe("writes need a stamp until Phase 2", () => {
+describe("writes need a stamp", () => {
   it("says so plainly", async () => {
     const dd = await DappData.connect({
       entropy: mnemonic(WORDS),

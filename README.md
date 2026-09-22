@@ -2,11 +2,13 @@
 
 Persistent, per-user dapp state on Swarm, keyed to a Sign-In with Ethereum identity — the per-user application-data folder, for dapps. One wallet signature derives a storage key; state lives in encrypted Swarm feeds that key owns; any device that can reproduce the signature gets the state back.
 
-Status: Phase 0 and Phase 1 are done and signed off (2026-09-21); Phase 2 is under way in `packages/dappdata`, where derivation, entropy sources, the envelope, the transports, the feed, slots, the client-side stamper and funding work — against a mocked Bee in 96 unit tests, against a real node on bee-factory, and on Sepolia for funding. The SDK is not published yet. Solar Punk's feasibility study of the idea (IDEA-198) is reviewed in `docs/REVIEW-IDEA-198.md`. Planning and decision docs live in `docs/`; start with `docs/PLAN.md`. Working with Claude Code? Read `CLAUDE.md` first.
+Status: Phases 0 to 2 are done and signed off (2026-09-22). `packages/dappdata` holds derivation, three entropy sources (wallet, mnemonic, passkey), the envelope, the transports, feeds, slots, the client-side stamper with its self-stamping checkpoint, funding and client-chunked blobs: 97 unit tests against a mocked Bee, an integration suite against bee-factory, and runs on Sepolia for funding and stamping. Phase 3, the reference dapp, is next (`ROADMAP.md`). The SDK is not published yet.
+
+Read next: `docs/GUIDE.md` (how to use it, with examples), `docs/REFERENCE.md` (every export), `docs/FUNDING.md` (paying for storage), `docs/ARCHITECTURE.md` (the design), `docs/PLAN.md` and `docs/DECISIONS.md` (the plan and why). Solar Punk's feasibility study (IDEA-198) is reviewed in `docs/REVIEW-IDEA-198.md`. Working with Claude Code? Read `CLAUDE.md` first.
 
 ## What it looks like
 
-The API below is implemented in `packages/dappdata` and covered by its tests, funding included. It is not published, so it can still move.
+The API below is implemented in `packages/dappdata` and covered by its tests. It is not published, so it can still move; `docs/REFERENCE.md` has the full surface.
 
 **Keep a user's settings across devices.** After Sign-In with Ethereum, hand dappdata the same provider. It asks the wallet for one more signature, over a fixed message that names your dapp's origin, and derives the user's storage key from it.
 

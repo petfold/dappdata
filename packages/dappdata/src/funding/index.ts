@@ -93,7 +93,8 @@ export interface Health {
   immutable: boolean;
   /**
    * Where the lifetime came from. The contract is authoritative: Bee's own
-   * `batchTTL` was 400 times too long on Sepolia (gate run, 2026-09-21).
+   * `batchTTL` was about 170 times too long on Sepolia (gate run, 2026-09-21;
+   * within 1 % on Gnosis per IDEA-198, so chain-specific and unexplained).
    */
   ttlSource: "contract" | "node";
 }

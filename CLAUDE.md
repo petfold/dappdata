@@ -18,7 +18,11 @@ Origin: Solar Punk Ideabox **IDEA-190** — https://solar-punk.atlassian.net/bro
 | `docs/CANVAS.md` | The IDEA-190 canvas — the *why* | When you need the original framing or references |
 | `docs/CONVERGENCE.md` | How dappdata relates to swarm-id and fdp-storage, and what we adopt from them | Before touching derivation, sub-keys or stamper state; before talking to the swarm-id team |
 | `docs/PROPOSAL-swarm-id.md` | The shared-spec argument for the swarm-id team | When Peter sends or discusses it |
-| `docs/REVIEW-IDEA-198.md` | Solar Punk's feasibility study of the idea: what we adopted, what we corrected, what to send back | Before replying to the study or closing D26/D27 |
+| `docs/REVIEW-IDEA-198.md` | Solar Punk's feasibility study of the idea: what we adopted, what we corrected, what to send back | Before replying to the study or closing D26 |
+| `docs/GUIDE.md` | The dapp developer guide: how to use the SDK, with examples | When writing the demo, an adapter, or user-facing text |
+| `docs/REFERENCE.md` | Every public export, hand-written from `src/index.ts` | When the API changes: update it in the same commit |
+| `docs/FUNDING.md` | Paying for storage: who pays, what it costs, stamping in the browser | Before touching `funding/` or `stamper/`, or explaining costs |
+| `ROADMAP.md` (root) | Phase status at a glance, what is settled, what is open and where it is decided | When someone outside the project asks where things stand |
 
 `docs/CANVAS.md` is the source of truth for why this exists. This file and the rest of `docs/` are the source of truth for how. Jira (IDEA-190) tracks the idea's status; this repo tracks the work.
 
@@ -26,7 +30,7 @@ Origin: Solar Punk Ideabox **IDEA-190** — https://solar-punk.atlassian.net/bro
 
 1. **Phases have gates.** Do not write Phase N+1 code until the Phase N gate is recorded in `docs/PLAN.md` and its decisions are closed in `docs/DECISIONS.md`.
 2. **Decisions live in `docs/DECISIONS.md`.** Add an entry before you act on a choice with lasting effect. When code embodies a decision, name the D-number in a comment.
-3. **Docs move with code.** A change that alters the design updates `docs/ARCHITECTURE.md` in the same commit.
+3. **Docs move with code.** A change that alters the design updates `docs/ARCHITECTURE.md` in the same commit; a change to the public API updates `docs/REFERENCE.md`, and one a dapp developer would notice updates `docs/GUIDE.md`.
 4. **Money.** Never buy, top up, or dilute a postage batch on Gnosis mainnet without Peter confirming in the session. bee-factory and Sepolia testnet are free to use.
 5. **Keys.** Never commit private keys, mnemonics, or derivation signatures. Test fixtures use throwaway keys, labelled as such in the file.
 6. **Scope.** No protocol changes, no Bee forks. Compose what exists: feeds, postage stamps, encryption, ACT.

@@ -56,10 +56,37 @@ Mainnet prices differ; never assume a figure, quote it.
 Two things make a batch cost more than a naive count of a user's writes:
 
 - **Every write may cost two chunks**, the value and the stamper checkpoint that
-  reserves room for it (D19). `quote()` already doubles for this.
+  reserves room for it (D19). `quote()` already counts the checkpoint. A value
+  over about 4 KB becomes a blob of one chunk per 4 KB plus the tree above them
+  (D27); tell `quote()` the typical `bytesPerWrite` and it counts those too.
 - **A batch is 65 536 buckets**, and a chunk can only go in the bucket its
   address falls in. A batch is full when one bucket is full, not when the whole
   batch is. At depth 17 a bucket holds 2 chunks; at depth 20, 16.
+
+## Stamping in the browser
+
+Under this model the node that takes the write holds no batch, so the SDK signs
+each stamp itself with the key that owns the batch:
+
+```ts
+const stamper = await dd.stamper(batch.batchId, { depth: batch.depth });
+const notes = dd.slot<string[]>("notes", { stamp: stamper });   // or stamp: stamper on connect() or set()
+```
+
+A postage stamp names a slot in a bucket, and a slot used twice destroys the
+earlier chunk, so the stamper keeps a record of which slots it may still use and
+checkpoints that record into a reserved slot of the user's own folder,
+`.stamper/<batchId>`, stamped by itself (D19). A second device restores it with
+nothing but the signature and starts above the line the first device published.
+Two devices that publish at the same moment are detected and the loser restarts
+from the winner's lines. What no client can see is a write made inside the
+network's propagation window, about a second on mainnet and about a minute on
+the Sepolia testnet: two devices extending the same bucket inside it can still
+collide, which is why the rule for v1 is one writing device at a time (D6).
+
+The receiving node needs `cors-allowed-origins` for your dapp and a chain RPC so
+its batch store knows the batch; it does not need to own it. Light, full and
+ultra-light nodes all qualify when they have the RPC.
 
 ## One batch per app
 

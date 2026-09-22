@@ -13,14 +13,12 @@ Target design. Sections marked *(D#)* depend on an open decision in `DECISIONS.m
  │  dappdata SDK                 │ ───────► │    └─ SOC[i] = envelope  │
  │   derive ─► feedKey, encKey   │  Bee     │         (ciphertext, or  │
  │   slot.get/set/watch          │  endpoint│          ref ─► blob)    │
- │   funding adapter ────────────┼──┐       │                          │
- └───────────────────────────────┘  │       └──────────────────────────┘
-                                    │
-                    Mode A: gateway-proxy stamps writes
-                    Mode B: user's own batch, sponsor may topUp
+ │   stamper ─► stamps per chunk │          │  .stamper/<batch> slot   │
+ │   funding ─► createBatch/topUp┼──► chain │   (bucket state, D19)    │
+ └───────────────────────────────┘          └──────────────────────────┘
 ```
 
-One wallet signature at sign-in yields a storage identity. State lives in feeds that identity owns, encrypted before it leaves the browser. A funding adapter decides who pays for the stamps.
+One wallet signature at sign-in yields a storage identity. State lives in feeds that identity owns, encrypted before it leaves the browser. The user owns the postage batch through the derived key and the SDK stamps every chunk client-side; the user, the dapp operator or a sponsor pays for the batch (D3, D12). There is no operated component.
 
 ## Identity and keys *(D1, D2, D8, D15, D16, D17, D21)*
 
