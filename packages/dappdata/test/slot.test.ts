@@ -194,6 +194,7 @@ describe("big values (D9)", () => {
 
     const write = transport.writes.at(-1);
     expect(write?.bytes).toBeLessThan(200); // the feed holds a reference, not the value
+    expect(transport.blobChunks.length).toBeGreaterThanOrEqual(2); // split client-side (D27)
     expect((await slot.get())?.value).toEqual(big);
   });
 });

@@ -22,11 +22,16 @@ function spent(stamp: Uint8Array): string {
   return `${view.getUint32(0)}/${view.getUint32(4)}`;
 }
 
-const slotsSpent = (transport: MemoryTransport): string[] =>
-  transport.writes.map((w) => {
+const slotsSpent = (transport: MemoryTransport): string[] => [
+  ...transport.writes.map((w) => {
     if (!w.stamped) throw new Error(`write at index ${w.index} was not client-stamped`);
     return spent(w.stamped);
-  });
+  }),
+  ...transport.blobChunks.map((c) => {
+    if (!c.stamped) throw new Error(`blob chunk ${c.address} was not client-stamped`);
+    return spent(c.stamped);
+  }),
+];
 
 describe("the slot-backed checkpoint store (D19)", () => {
   it("stamps its own checkpoint and every data write from one account of the batch", async () => {
@@ -44,6 +49,13 @@ describe("the slot-backed checkpoint store (D19)", () => {
       current = await notes.get();
     }
     expect(current?.value).toHaveLength(6);
+
+    // A value too large for one chunk: every chunk of the blob is stamped by
+    // the same stamper, so a sponsored user can write blobs too (D27).
+    const bulk = dd.slot<string>("bulk");
+    await bulk.set("y".repeat(10_000), { stamp: stamper });
+    expect((await bulk.get())?.value).toHaveLength(10_000);
+    expect(transport.blobChunks.length).toBeGreaterThanOrEqual(3);
 
     // The checkpoint lives in the folder, readable with nothing but the key.
     const checkpoint = await dd.slot<{ reserved: Array<[number, number]> }>(`.stamper/${BATCH}`).get();

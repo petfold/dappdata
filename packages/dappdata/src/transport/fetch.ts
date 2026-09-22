@@ -15,6 +15,7 @@ import {
 } from "@ethersphere/core-sdk";
 import { DappDataError } from "../errors.js";
 import { feedIdentifier } from "../feed/address.js";
+import { splitBlob } from "./blob.js";
 import { isMissingChunkResponse } from "./missing.js";
 import {
   type BatchStatus,
@@ -172,30 +173,22 @@ export function fetchTransport(
     },
 
     async putBlob({ data, stamp }: { data: Uint8Array; stamp: Stamp }): Promise<string> {
-      if (isStampSigner(stamp)) {
-        // /bytes splits the data into chunks on the node, so the client never
-        // sees the addresses it would have to stamp. A blob therefore needs a
-        // node that holds the batch, until the SDK splits client-side itself.
+      if (typeof stamp !== "string" && !isStampSigner(stamp)) {
         throw new DappDataError(
           "unsupported",
-          "a value too large for one chunk needs a node holding the batch: " +
-            "client-side stamping cannot cover chunks it never sees (D12, D19)",
+          "a pre-signed stamp covers one chunk; a blob needs a batch id or a stamper (D27)",
         );
       }
-      const response = await ask("/bytes", {
-        method: "POST",
-        headers: {
-          "content-type": "application/octet-stream",
-          ...(typeof stamp === "string"
-            ? { "swarm-postage-batch-id": stamp }
-            : { "swarm-postage-stamp": hex(stamp.marshalled) }),
-          "swarm-encrypt": "true",
-        },
-        body: data as BodyInit,
+      // Chunked here, so a client-side stamper signs every chunk and the node
+      // needs no batch (D27). The bytes are already sealed by the envelope.
+      return splitBlob(data, async (address, bytes) => {
+        const headers = await stampHeader(stamp, address);
+        await ask("/chunks", {
+          method: "POST",
+          headers: { "content-type": "application/octet-stream", ...uploadHeaders, ...headers },
+          body: bytes as BodyInit,
+        });
       });
-      const body = (await response.json()) as { reference?: string };
-      if (!body.reference) throw new DappDataError("unsupported", "no reference in the response");
-      return body.reference;
     },
 
     async getBlob(reference: string): Promise<Uint8Array> {

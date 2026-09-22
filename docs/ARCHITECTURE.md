@@ -63,13 +63,13 @@ The derivation message binds the app identity (D16), so each dapp gets its own f
 ```
 version(1) | alg(1) | mode(1) | schema(1) | nonce(12) | body
 mode = INLINE   body = ciphertext of the state value (≤ ~3.9 KB after framing)
-mode = REF      body = 64-byte encrypted Swarm reference to an uploaded blob
+mode = REF      body = sealed 32-byte root of a client-chunked blob (64-byte Swarm-encrypted reference before D27)
 schema        = the dapp's own version of the value's shape (D22); returned by get, fed to migrate
 ```
 
 Frame, encrypt and decrypt are a pure module (`dappdata/envelope`) that works with any WebCrypto key and a caller-chosen AAD, so other libraries can reuse the format *(D20)*. The connected instance also offers `encrypt(bytes, aad)` / `decrypt` with the folder's `encKey`, which never leaves WebCrypto.
 
-Inline when the value fits a chunk; otherwise the SDK uploads the value with Swarm's built-in encryption (which gives a 64-byte reference containing the decryption key) and stores that reference in the envelope, encrypted again with `encKey`. Readers never learn which mode a slot uses without the key.
+Inline when the value fits a chunk; otherwise *(D27)* the SDK seals the value with the same envelope, splits the sealed bytes into plain content-addressed chunks client-side with core-sdk's `ChunkSplitter`, stamps and uploads each chunk through `POST /chunks`, and stores the 32-byte root in the feed payload, sealed again with `encKey`. Reading joins the chunks through `GET /bytes` and opens the inner envelope. Readers never learn which mode a slot uses without the key, and a client-side stamper covers a blob's every chunk, so sponsor-pays works for values of any size. Blobs written before D27 carry a 64-byte Swarm-encrypted reference and are still read.
 
 **Encryption *(D9, closed 2026-09-21)*.** AES-256-GCM through WebCrypto with `encKey`, random 96-bit nonce per write, topic as additional authenticated data so a payload cannot be replayed into another slot. ACT is not used for v1: there is one reader, the user; ACT's grantee model adds nothing yet. Revisit if sharing between users enters scope.
 

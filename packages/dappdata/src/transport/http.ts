@@ -77,9 +77,16 @@ export function http(url: string, options: HttpTransportOptions = {}): Transport
     },
 
     async putBlob({ data, stamp }: { data: Uint8Array; stamp: Stamp }): Promise<string> {
-      // Swarm's own encryption: the 64-byte reference carries the key, and the
-      // SDK seals that reference in the feed payload (D9).
-      const result = await bee.data.upload(stampBatchId(stamp), data, { encrypt: true });
+      if (typeof stamp !== "string") {
+        throw new DappDataError(
+          "unsupported",
+          "the bee-js transport uploads blobs through the node's batch; a client-side stamp " +
+            "needs transport.fetch (D27)",
+        );
+      }
+      // The bytes are already sealed by the envelope (D9, D27), so no Swarm
+      // encryption: the node splits them and returns a 32-byte root.
+      const result = await bee.data.upload(stamp, data);
       return result.reference.toHex();
     },
 

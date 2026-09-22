@@ -1,6 +1,6 @@
 // One named piece of state: get, set, watch (D6, D9, D22).
 import { ConflictError, DappDataError } from "../errors.js";
-import { Mode, open, seal } from "../envelope/index.js";
+import { Mode, type Opened, open, seal } from "../envelope/index.js";
 import type { SequentialFeed } from "../feed/index.js";
 import type { Stamp, Transport } from "../transport/types.js";
 import { type Codec, jsonCodec } from "./codec.js";
@@ -74,13 +74,9 @@ export class Slot<T> {
     const update = await this.#ctx.feed.latest();
     if (update === null) return null;
 
-    const opened = await open(this.#ctx.key, update.payload, this.#ctx.aad);
-    const raw =
-      opened.mode === Mode.REF
-        ? await this.#ctx.transport.getBlob(new TextDecoder().decode(opened.value))
-        : opened.value;
+    const opened = await this.#resolve(await open(this.#ctx.key, update.payload, this.#ctx.aad));
 
-    let value = this.#codec.decode(raw);
+    let value = this.#codec.decode(opened.value);
     const want = this.#ctx.options.schema ?? 0;
     if (opened.schema !== want) {
       const migrate = this.#ctx.options.migrate;
@@ -125,13 +121,9 @@ export class Slot<T> {
     } catch (error) {
       if (!(error instanceof ConflictError) || !options.merge) throw error;
 
-      const opened = await open(this.#ctx.key, error.payload, this.#ctx.aad);
-      const remoteRaw =
-        opened.mode === Mode.REF
-          ? await this.#ctx.transport.getBlob(new TextDecoder().decode(opened.value))
-          : opened.value;
+      const opened = await this.#resolve(await open(this.#ctx.key, error.payload, this.#ctx.aad));
       const remote: SlotValue<T> = {
-        value: this.#codec.decode(remoteRaw),
+        value: this.#codec.decode(opened.value),
         index: error.index,
         schema: opened.schema,
       };
@@ -180,7 +172,27 @@ export class Slot<T> {
     };
   }
 
-  /** Seal a value, sending anything too big for one chunk to a blob (D9). */
+  /**
+   * The bytes behind an opened payload. INLINE carries them; REF names a blob.
+   * A blob written since D27 is itself a sealed envelope over plain chunks
+   * (32-byte reference); one written before is Swarm-encrypted plaintext
+   * (64-byte reference), which the node decrypts on the way out.
+   */
+  async #resolve(opened: Opened): Promise<{ value: Uint8Array; schema: number }> {
+    if (opened.mode !== Mode.REF) return { value: opened.value, schema: opened.schema };
+    const reference = new TextDecoder().decode(opened.value);
+    const blob = await this.#ctx.transport.getBlob(reference);
+    if (reference.replace(/^0x/, "").length !== 64) return { value: blob, schema: opened.schema };
+    const inner = await open(this.#ctx.key, blob, this.#ctx.aad);
+    return { value: inner.value, schema: inner.schema };
+  }
+
+  /**
+   * Seal a value, sending anything too big for one chunk to a blob (D9, D27).
+   * The blob is the sealed envelope itself, split into plain chunks that a
+   * client-side stamper can sign one by one; the feed then carries the sealed
+   * 32-byte root reference.
+   */
   async #frame(value: T, stamp: Stamp): Promise<Uint8Array> {
     const bytes = this.#codec.encode(value);
     const schema = this.#ctx.options.schema ?? 0;
@@ -189,7 +201,8 @@ export class Slot<T> {
       return seal(this.#ctx.key, bytes, { aad: this.#ctx.aad, schema });
     }
 
-    const reference = await this.#ctx.transport.putBlob({ data: bytes, stamp });
+    const blob = await seal(this.#ctx.key, bytes, { aad: this.#ctx.aad, schema });
+    const reference = await this.#ctx.transport.putBlob({ data: blob, stamp });
     const sealed = await seal(this.#ctx.key, new TextEncoder().encode(reference), {
       aad: this.#ctx.aad,
       schema,

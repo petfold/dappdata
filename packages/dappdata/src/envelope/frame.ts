@@ -3,8 +3,10 @@
 //   version(1) | alg(1) | mode(1) | schema(1) | nonce(12) | body
 //
 // INLINE bodies are the ciphertext of the value itself. REF bodies are the
-// ciphertext of a 64-byte Swarm reference to a blob uploaded with Swarm's own
-// encryption, so a reader who can read the feed still learns nothing.
+// ciphertext of a Swarm reference to a blob: since D27 a 32-byte root of plain
+// chunks whose content is itself a sealed frame; before D27 a 64-byte
+// reference to a blob uploaded with Swarm's own encryption. Either way a
+// reader who can read the feed learns nothing.
 import { DappDataError } from "../errors.js";
 
 export const VERSION = 1;

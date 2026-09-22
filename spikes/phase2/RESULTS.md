@@ -86,6 +86,10 @@ A read of a chunk the node holds takes 12–73 ms. A read of a chunk that does n
 - Options for D6 in Phase 4, recorded in the decision: a settle wait after publishing a reservation before spending from it, done ahead of need since feed-chunk addresses are known in advance; or per-device checkpoint feeds folded on read. Until then the rule stands: one device writes at a time, and the demo says so.
 - For a node the user runs, `transport.fetch(url, undefined, { deferred: true, pin: true })` makes the user's own writes readable at once by every tab and after every reload, and keeps their state on their node.
 
+## D27 check, same day (`src/blob.mjs`)
+
+A 12 030-byte value, sealed with the envelope, split client-side into four chunks, each stamped by the default (slot-backed) stamper and posted to `POST /chunks` on the node holding no batch, root last; the feed carries the sealed 32-byte root. Accepted by Bee 2.8.2; a fresh instance read it back identical through `GET /bytes` on the root (12.6 s to write including the cold lookup and two checkpoint writes; 6.0 s to read cold). Transport options `deferred: true, pin: true`, so the same node answered the read at once. Sponsor-pays now covers values of any size.
+
 ## Cost
 
 One depth-20 batch for a day, 0.0435 sBZZ, plus gas; 0.05 sBZZ moved from the node wallet into its chequebook (it stays there). About 50 stamps spent across the run and the follow-ups. The payer key held 0.222 sBZZ and 0.054 sETH before the run.

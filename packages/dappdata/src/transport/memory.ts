@@ -1,9 +1,10 @@
 // An in-memory transport. Unit tests mock Bee (PLAN, "Tests"), and a dapp can
 // use this one to develop against nothing at all.
 import { keccak_256 } from "@noble/hashes/sha3";
-import { bytesToHex } from "@noble/hashes/utils";
+import { bytesToHex, hexToBytes } from "@noble/hashes/utils";
 import { secp256k1 } from "@noble/curves/secp256k1";
 import { feedChunkAddress } from "../feed/address.js";
+import { joinBlob, splitBlob } from "./blob.js";
 import {
   type BatchStatus,
   type ChainState,
@@ -35,6 +36,8 @@ export interface MemoryWrite {
 export interface MemoryTransport extends Transport {
   /** Every write the SDK made, in order. Handy in tests. */
   readonly writes: MemoryWrite[];
+  /** Every blob chunk the SDK uploaded, with the stamp a stamper signed for it. */
+  readonly blobChunks: Array<{ address: string; stamped?: Uint8Array }>;
   /** Pretend the node knows about this batch. */
   setBatch(batch: BatchStatus): void;
   /** Pretend postage costs this much per chunk per block. */
@@ -44,7 +47,8 @@ export interface MemoryTransport extends Transport {
 export function memory(): MemoryTransport {
   const feeds = new Map<string, Uint8Array>();
   const latest = new Map<string, bigint>();
-  const blobs = new Map<string, Uint8Array>();
+  const chunks = new Map<string, Uint8Array>();
+  const blobChunks: Array<{ address: string; stamped?: Uint8Array }> = [];
   const writes: MemoryWrite[] = [];
   const batches = new Map<string, BatchStatus>();
   let price = 24_000n;
@@ -52,6 +56,7 @@ export function memory(): MemoryTransport {
   return {
     kind: "memory",
     writes,
+    blobChunks,
 
     async putFeedUpdate({ signer, topic, index, payload, stamp }: PutFeedUpdate): Promise<void> {
       if (!stampBatchId(stamp)) throw new Error("a write needs a postage batch");
@@ -87,16 +92,25 @@ export function memory(): MemoryTransport {
       return payload ? { index, payload } : null;
     },
 
-    async putBlob({ data }: { data: Uint8Array; stamp: Stamp }): Promise<string> {
-      const reference = bytesToHex(keccak_256(data));
-      blobs.set(reference, new Uint8Array(data));
-      return reference;
+    async putBlob({ data, stamp }: { data: Uint8Array; stamp: Stamp }): Promise<string> {
+      if (!stampBatchId(stamp)) throw new Error("a write needs a postage batch");
+      // Split as the real transport does, and ask a stamper for every chunk.
+      return splitBlob(data, async (address, bytes) => {
+        const entry: { address: string; stamped?: Uint8Array } = { address: bytesToHex(address) };
+        if (isStampSigner(stamp)) entry.stamped = await stamp.sign(address);
+        chunks.set(entry.address, new Uint8Array(bytes));
+        blobChunks.push(entry);
+      });
     },
 
     async getBlob(reference: string): Promise<Uint8Array> {
-      const data = blobs.get(reference.replace(/^0x/, ""));
-      if (!data) throw new Error(`no blob ${reference}`);
-      return data;
+      const ref = reference.replace(/^0x/, "");
+      if (ref.length !== 64) throw new Error(`no blob ${reference}: this transport stores plain chunk trees`);
+      return joinBlob(hexToBytes(ref), async (address) => {
+        const chunk = chunks.get(bytesToHex(address));
+        if (!chunk) throw new Error(`no chunk ${bytesToHex(address)}`);
+        return chunk;
+      });
     },
 
     async getBatch(batchId: string): Promise<BatchStatus | null> {

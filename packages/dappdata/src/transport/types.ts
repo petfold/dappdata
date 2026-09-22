@@ -88,7 +88,11 @@ export interface Transport {
    */
   findLatest(args: { owner: string; topic: Uint8Array }): Promise<FeedUpdate | null>;
 
-  /** A value too large for one chunk, uploaded with Swarm's encryption (D9). */
+  /**
+   * A value too large for one chunk: already sealed by the envelope, split
+   * into plain chunks that a client-side stamper signs one by one, returned
+   * as the 32-byte root reference in hex (D9, D27).
+   */
   putBlob(args: { data: Uint8Array; stamp: Stamp }): Promise<string>;
   getBlob(reference: string): Promise<Uint8Array>;
 

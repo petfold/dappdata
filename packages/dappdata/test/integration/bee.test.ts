@@ -91,7 +91,7 @@ for (const [name, make] of [
       );
     }, 60_000);
 
-    it("sends a large value to an encrypted blob and back (D9)", async () => {
+    it("sends a large value to a sealed, client-chunked blob and back (D9, D27)", async () => {
       const app = `test-blob-${name}-${Date.now()}`;
       const dd = await connect(make(), app);
       const slot = dd.slot<{ blob: string }>("bulk");
