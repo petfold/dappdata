@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { memory } from "../src/transport/memory.js";
-import { funding, sepolia, gnosis, BUCKET_DEPTH } from "../src/funding/index.js";
+import { funding, sepolia, gnosis, BUCKET_DEPTH, chunksPerWrite } from "../src/funding/index.js";
 import {
   BATCH_CREATED_TOPIC,
   batchIdFor,
@@ -155,6 +155,16 @@ describe("fund (D3, D12, D23)", () => {
 
   it("needs either a budget or a depth and an amount", async () => {
     await expect(make(mockChain()).fund({ owner: OWNER })).rejects.toThrowError(DappDataError);
+  });
+});
+
+describe("chunks per write (D27)", () => {
+  it("is one chunk up to the inline limit and a tree above it", () => {
+    expect(chunksPerWrite(100)).toBe(1);
+    expect(chunksPerWrite(4064)).toBe(1);
+    expect(chunksPerWrite(4065)).toBe(1 + 2 + 1); // two leaves, one root, one feed chunk
+    expect(chunksPerWrite(100_000)).toBe(1 + 25 + 1);
+    expect(chunksPerWrite(4096 * 200)).toBe(1 + 201 + 2 + 1); // two intermediates and a root
   });
 });
 

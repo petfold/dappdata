@@ -25,7 +25,7 @@ export type { Codec, SetOptions, SlotOptions, SlotValue, WatchOptions } from "./
 export { SequentialFeed } from "./feed/index.js";
 export { feedChunkAddress, feedIdentifier } from "./feed/address.js";
 
-export { funding, gnosis, sepolia, custom as customChain, BUCKET_DEPTH } from "./funding/index.js";
+export { funding, gnosis, sepolia, custom as customChain, BUCKET_DEPTH, chunksPerWrite } from "./funding/index.js";
 export type {
   ChainConfig,
   FundOptions,

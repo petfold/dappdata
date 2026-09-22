@@ -39,6 +39,26 @@ const CHUNK_BYTES = 4096;
 export interface WriteBudget {
   writesPerDay: number;
   retentionDays: number;
+  /**
+   * The size of a typical value, in bytes. Up to about 4 KB a write is one
+   * chunk; above that the value becomes a client-chunked blob and costs one
+   * chunk per 4 KB plus the tree above them (D27). Default: fits one chunk.
+   */
+  bytesPerWrite?: number | undefined;
+}
+
+/** How many chunks one write of `bytes` spends, blob tree and feed chunk included (D27). */
+export function chunksPerWrite(bytes: number): number {
+  const inlineMax = 4096 - 4 - 12 - 16; // MAX_INLINE_BYTES, without importing the slot
+  if (bytes <= inlineMax) return 1;
+  const leaves = Math.ceil((bytes + 32) / 4096); // the envelope adds a header, nonce and tag
+  let level = leaves;
+  let tree = 0;
+  while (level > 1) {
+    level = Math.ceil(level / 128); // 128 references per intermediate chunk
+    tree += level;
+  }
+  return 1 + leaves + tree; // the feed chunk that carries the sealed root
 }
 
 export interface FundOptions {
@@ -164,9 +184,10 @@ export function funding(options: FundingOptions): Funding {
     if (budget.writesPerDay <= 0 || budget.retentionDays <= 0) {
       throw new DappDataError("unsupported", "a write budget needs positive numbers");
     }
-    // Two chunks per write in the worst case: the value, and the stamper
-    // checkpoint that reserves room for it (D19).
-    const chunks = budget.writesPerDay * budget.retentionDays * 2;
+    // Per write: the value's chunks (one, or a blob tree, D27) plus the
+    // stamper checkpoint that reserves room for them in the worst case (D19).
+    const perWrite = chunksPerWrite(budget.bytesPerWrite ?? 0) + 1;
+    const chunks = budget.writesPerDay * budget.retentionDays * perWrite;
     const depth = Math.max(17, getDepthForSize(chunks * CHUNK_BYTES, true));
 
     const { currentPrice } = await transport.getChainState();

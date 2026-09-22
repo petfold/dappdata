@@ -17,7 +17,7 @@ write to the user's folder.
 
 ```ts
 const money = dd.funding(payerProvider, chain);      // payer: user, operator, sponsor
-const quote = await money.quote({ writesPerDay: 50, retentionDays: 90 });
+const quote = await money.quote({ writesPerDay: 50, retentionDays: 90 }); // add bytesPerWrite for values over 4 KB (D27)
 const batch = await money.fund({ budget: { writesPerDay: 50, retentionDays: 90 } });
 const health = await money.health(batch.batchId);    // { usable, daysLeft, usage }
 ```
