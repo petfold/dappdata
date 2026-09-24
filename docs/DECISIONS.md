@@ -273,3 +273,16 @@ Two consequences. The checkpoint chunk is itself stamped, so a reservation block
 **Options.** (a) Per-source: wallet stays direct v1, passkey and smart-account sources go through the vault; (b) every source goes through the vault, with v1 folders wrapped in place at first connect; (c) never, and accept one folder per passkey and no smart accounts.
 **Leaning.** (a) first, because it changes nothing for wallet users and brings in passkey users and 1-of-1 smart accounts; (b) later if multi-owner accounts or key rotation for wallet users are wanted.
 **Consequences.** `EntropySource` stays as it is; the vault is a layer between it and `deriveFolderKeys`. `ARCHITECTURE.md` gains a section when the design is taken; D2's refusal of contract accounts is lifted per source as the vault lands.
+
+## D29 — A sharing identity: one key that every client derives
+**Status:** open. Proposed 2026-09-25 from OntoDAG's `docs/plans/SHARING_ON_SWARM.md` (its discussion topic S1), where sharing and receiving run on Swarm with no server. Additive to v1, so nothing waits on it.
+**Context.** Sharing on Swarm without a server is ACT-shaped: an author wraps a key for each reader at an ECDH-derived lookup key (OntoDAG's `ontodag.keyplan`, Bee-compatible grantee entries). That needs a long-lived secp256k1 key per person, or per persona, that others encrypt to and whose signatures they check. It has to be the **same key in every client**: if a categor.io client and a ucomm client derived different keys, a user would be two people to everyone who shares with them. D16 binds every derived key to the app, and D17's `deriveKey(purpose)` already lists ACT grantees as a use, but per app. Decryption can't be delegated the way signing can (ucomm DESIGN §7): shares are wrapped for one public key, so every device that reads needs its private key.
+**Options.**
+- (a) Per app, D17 as it stands: each app is its own sharing identity, and a user shares from each separately.
+- (b) A reserved app identity, like D7's `dappdata:directory`: one `app` string for sharing (say `dappdata:sharing`) that every client signs for. Personas are `deriveKey("persona/<name>")` under it.
+- (c) A hosted keystore holds the identity: swarm-id's profile, through D24's shared spec.
+**Leaning.** (b). Its cost is D16's T14 made sharper: any site can ask for the reserved identity, so the wallet's line naming the requesting site is the only defence, and a phished signature exposes every share made to the user. D28's wrapped seed is the way to one identity behind several unlock sources, and to rotating it after a loss. Authors treat a changed key as the old one losing everything (SHARING_ON_SWARM §2).
+**Consequences.**
+- One more context string in the spec.
+- A contact-card record at a feed the identity owns: display name, wall and rendezvous addresses.
+- Every device that reads holds the key, so T4 (key loss) is also the loss of every share made to the user.
